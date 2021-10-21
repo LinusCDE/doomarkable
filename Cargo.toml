@@ -1,0 +1,10 @@
+[package]
+name = "doomarkable"
+version = "0.1.0"
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+doomgeneric = { git = "https://github.com/LinusCDE/doomgeneric-rs.git", tag = "0.2.0" }
+libremarkable = "0.4.3"

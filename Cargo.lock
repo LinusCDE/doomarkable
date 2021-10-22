@@ -197,6 +197,8 @@ name = "doomarkable"
 version = "0.1.0"
 dependencies = [
  "doomgeneric",
+ "fxhash",
+ "lazy_static",
  "libremarkable",
 ]
 

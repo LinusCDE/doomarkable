@@ -1,14 +1,23 @@
+//#[feature(edition2021)]
+//#![feature(portable_simd)]
+
 use doomgeneric::doom::{self, KeyData};
-use libremarkable::cgmath::Point2;
+use libremarkable::cgmath::{vec2, Point2};
 use libremarkable::framebuffer::common;
 use libremarkable::framebuffer::core::Framebuffer;
-use libremarkable::framebuffer::{FramebufferBase, FramebufferDraw, FramebufferRefresh};
+use libremarkable::framebuffer::{
+    FramebufferBase, FramebufferDraw, FramebufferIO, FramebufferRefresh,
+};
+use libremarkable::image::RgbImage;
 use std::collections::VecDeque;
+use std::ops::Mul;
 use std::time::{Duration, Instant};
 
-struct Game<'a> {
-    framebuffer: libremarkable::framebuffer::core::Framebuffer<'a>,
-    last_frame_drawn: Instant,
+mod blue_noise_dither;
+const SCALE_FACTOR: u32 = 2;
+
+struct Game {
+    image: std::sync::Arc<std::sync::Mutex<RgbImage>>,
     input_queue: VecDeque<KeyData>,
 }
 
@@ -34,126 +43,37 @@ fn button_to_doom_key(button: Button) -> Option<u8> {
     }
 }*/
 
-impl<'a> doom::Doom for Game<'a> {
+impl doom::Doom for Game {
     fn draw_frame(&mut self, screen_buffer: &[u32], xres: usize, yres: usize) {
-        let pos = Point2 {
-            x: (common::DISPLAYWIDTH as i32 - xres as i32) / 2,
-            y: (common::DISPLAYHEIGHT as i32 - yres as i32) / 2,
-        };
-        //self.framebuffer.draw_image
         let mut rgb_img = libremarkable::image::RgbImage::new(xres as u32, yres as u32);
-        //println!("XRES: {}, YRES: {}", xres, yres);
-        /*let mut rgb_img = libremarkable::image::DynamicImage::new_rgb8(
-            doom::DOOMGENERIC_RESX as u32,
-            doom::DOOMGENERIC_RESY as u32,
-        );*/
         assert!(xres * yres == screen_buffer.len());
+
         for (index, argb) in screen_buffer.iter().enumerate() {
-            //println!("X: {}, Y: {}", (index / xres) as u32, (index % xres) as u32);
-            rgb_img.put_pixel(
-                (index % xres) as u32,
-                (index / xres) as u32,
-                libremarkable::image::Rgb([
-                    ((argb >> 16) & 0xFF) as u8,
-                    ((argb >> 8) & 0xFF) as u8,
-                    ((argb >> 0) & 0xFF) as u8,
-                ]),
-            );
+            let pixel = libremarkable::image::Rgb([
+                ((argb >> 16) & 0xFF) as u8,
+                ((argb >> 8) & 0xFF) as u8,
+                ((argb >> 0) & 0xFF) as u8,
+            ]);
+            let x = (index % xres) as u32;
+            let y = (index / xres) as u32;
+
+            rgb_img.put_pixel(x, y, pixel);
         }
 
-        // Useing this to artificially lower the refresh rate on rm2
-        if libremarkable::device::CURRENT_DEVICE.model == libremarkable::device::Model::Gen2
-            && self.last_frame_drawn.elapsed() < Duration::from_millis(750)
-        {
-            std::thread::sleep(Duration::from_millis(10));
-            return;
-        }
-        self.framebuffer.draw_image(&rgb_img, pos);
-        let start = Instant::now();
-        self.framebuffer.partial_refresh(
-            &common::mxcfb_rect {
-                left: pos.x as u32,
-                top: pos.y as u32,
-                width: xres as u32,
-                height: yres as u32,
-            },
-            libremarkable::framebuffer::refresh::PartialRefreshMode::Wait,
-            common::waveform_mode::WAVEFORM_MODE_GLR16,
-            common::display_temp::TEMP_USE_PAPYRUS,
-            common::dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
-            0,
-            false,
-        );
-        if start.elapsed() > Duration::from_millis(33) {
-            println!("Waited {:?} to draw image!", start.elapsed());
-        }
-        self.last_frame_drawn = Instant::now();
-
-        /*let mut events = Events::new(EventSettings::new());
-        events.set_max_fps(1000);
-        while let Some(e) = events.next(&mut self.window) {
-            if let Some(button) = e.press_args() {
-                if let Some(key) = button_to_doom_key(button) {
-                    let keydata = KeyData { pressed: true, key };
-                    self.input_queue.push_back(keydata);
-                }
-            } else if let Some(button) = e.release_args() {
-                if let Some(key) = button_to_doom_key(button) {
-                    let keydata = KeyData {
-                        pressed: false,
-                        key,
-                    };
-                    self.input_queue.push_back(keydata);
-                }
-            } else if let Some(args) = e.render_args() {
-                self.gl.draw(args.viewport(), |c, gl| {
-                    // Clear the screen.
-                    graphics::clear([0.0, 0.0, 0.0, 1.0], gl);
-
-                    let image = graphics::Image::new().rect([
-                        0.0,
-                        0.0,
-                        f64::from(c.get_view_size()[0]),
-                        f64::from(c.get_view_size()[1]),
-                    ]);
-                    let mut screen_buffer_rgba: Vec<u8> = Vec::with_capacity(xres * yres * 4);
-                    for argb in screen_buffer {
-                        screen_buffer_rgba.push(((argb >> 16) & 0xFF) as u8);
-                        screen_buffer_rgba.push(((argb >> 8) & 0xFF) as u8);
-                        screen_buffer_rgba.push(((argb >> 0) & 0xFF) as u8);
-                        // Alpha seems to be opacity. Inverting it.
-                        screen_buffer_rgba.push(255 - ((argb >> 24) & 0xFF) as u8);
-                    }
-                    let texture = Texture::create(
-                        &mut (),
-                        opengl_graphics::Format::Rgba8,
-                        &screen_buffer_rgba,
-                        [xres as u32, yres as u32],
-                        &TextureSettings::new(),
-                    )
-                    .unwrap();
-                    image.draw(&texture, &Default::default(), c.transform, gl);
-
-                    // No image without this useless call!
-                    graphics::rectangle(
-                        [0.0, 1.0, 0.0, 1.0],
-                        graphics::rectangle::square(0.0, 0.0, 0.0),
-                        c.transform.trans(0.0, 0.0),
-                        gl,
-                    );
-                });
-            } else if let Some(_args) = e.update_args() {
-                break;
-            }
-        }*/
+        *self.image.lock().unwrap() = rgb_img;
     }
     fn get_key(&mut self) -> Option<doom::KeyData> {
         self.input_queue.pop_front()
     }
     fn set_window_title(&mut self, _title: &str) {
-        //self.window.ctx.window().set_title(title);
+        //self.indow.ctx.window().set_title(title);
     }
 }
+
+/*extern "C" {
+    // arm_neon.h from toolchain
+    fn vcgt_u8 (uint8x8_t __a, uint8x8_t __b);
+}*/
 
 fn main() {
     let mut fb = Framebuffer::from_path("/dev/fb0");
@@ -165,9 +85,162 @@ fn main() {
         0,
         true,
     );
+    let start = Instant::now();
+    let mut ditherer = blue_noise_dither::CachedDither0XTo4X::new(
+        doom::DOOMGENERIC_RESX as u32,
+        doom::DOOMGENERIC_RESY as u32,
+    );
+    println!("Precalculated dither in {:?}", start.elapsed());
+
+    let image = std::sync::Arc::new(std::sync::Mutex::new(RgbImage::new(
+        doom::DOOMGENERIC_RESX as u32,
+        doom::DOOMGENERIC_RESY as u32,
+    )));
+    let image_clone = image.clone();
+    std::thread::spawn(move || {
+        let mut last_frame_drawn = Instant::now() - Duration::from_millis(1000);
+        let width = doom::DOOMGENERIC_RESX as u32 * SCALE_FACTOR as u32;
+        let height = doom::DOOMGENERIC_RESY as u32 * SCALE_FACTOR as u32;
+        let pos = Point2 {
+            x: (common::DISPLAYWIDTH as i32 - width as i32) / 2,
+            y: (common::DISPLAYHEIGHT as i32 - height as i32) / 2,
+        };
+
+        loop {
+            // Useing this to artificially lower the refresh rate on rm2
+            if libremarkable::device::CURRENT_DEVICE.model == libremarkable::device::Model::Gen2
+                && last_frame_drawn.elapsed() < Duration::from_millis(750)
+            {
+                std::thread::sleep(Duration::from_millis(10));
+                continue;
+            }
+            // Useing this to artificially lower the refresh rate on rm2
+            if libremarkable::device::CURRENT_DEVICE.model == libremarkable::device::Model::Gen1
+                && last_frame_drawn.elapsed() < Duration::from_millis(20)
+            {
+                std::thread::sleep(Duration::from_millis(10));
+                continue;
+            }
+
+            let rgb_img = &image.lock().unwrap().clone();
+            let start = Instant::now();
+            //let dithered_img = blue_noise_dither::dither_image(rgb_img, SCALE_FACTOR);
+            let dithered_img = ditherer.dither_image(rgb_img);
+            println!("Waited {:?} to dither image!", start.elapsed());
+
+            let start = Instant::now();
+            //fb.draw_image(&dithered_img, pos);
+            draw_image_mono(&mut fb, pos, &dithered_img);
+            fb.partial_refresh(
+                &common::mxcfb_rect {
+                    left: pos.x as u32,
+                    top: pos.y as u32,
+                    width,
+                    height,
+                },
+                libremarkable::framebuffer::refresh::PartialRefreshMode::Async,
+                common::waveform_mode::WAVEFORM_MODE_DU,
+                common::display_temp::TEMP_USE_REMARKABLE_DRAW,
+                common::dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
+                0,
+                false,
+            );
+            println!("Waited {:?} to draw image!", start.elapsed());
+            last_frame_drawn = Instant::now();
+        }
+    });
+
     doom::init(Game {
-        framebuffer: fb,
-        last_frame_drawn: Instant::now() - Duration::from_millis(1000),
+        image: image_clone,
         input_queue: VecDeque::new(),
     });
+}
+
+fn draw_image_mono(fb: &mut Framebuffer, pos: Point2<i32>, img: &libremarkable::image::GrayImage) {
+    assert!(img.width() % 32 == 0);
+
+    /*for (x, y, pixel) in img.enumerate_pixels() {
+        let pixel_pos = pos + vec2(x as i32, y as i32);
+        fb.write_pixel(
+            pixel_pos.cast().unwrap(),
+            if pixel.data[0] > 0 {
+                common::color::WHITE
+            } else {
+                common::color::BLACK
+            },
+        );
+    }*/
+
+    let width = img.width();
+    let height = img.height();
+    let mut fb_raw_data: Vec<u8> =
+        Vec::with_capacity(img.width() as usize * 2 * img.height() as usize);
+    //let img_vec = img.to_vec();
+    //let x_abs_end = pos.x + img.width();
+    //let y_abs_end = pos.y + img.height();
+    let mut x = 0;
+    let mut y = 0;
+    loop {
+        if y == height {
+            break;
+        }
+
+        x = 0;
+
+        loop {
+            if x == width {
+                break;
+            }
+
+            let pixel_value = img.get_pixel(x, y).data[0];
+            fb_raw_data.push(pixel_value);
+            fb_raw_data.push(pixel_value);
+
+            x += 1;
+            //img_pixel_index += 1;
+        }
+
+        y += 1;
+    }
+    /*for img_pixel_index in 0..img_vec.len() {
+        let pixel_value = img_vec[img_pixel_index];
+        fb_raw_data.push(pixel_value);
+        fb_raw_data.push(pixel_value);
+    }*/
+    fb.restore_region(
+        common::mxcfb_rect {
+            top: pos.y as u32,
+            left: pos.x as u32,
+            width,
+            height,
+        },
+        &fb_raw_data,
+    );
+
+    /*
+    for (x, y, pixel) in img.enumerate_pixels() {
+        let pixel_pos = pos + vec2(x as i32, y as i32);
+        fb.write_pixel(
+            pixel_pos.cast().unwrap(),
+            if pixel.data[0] > 0 {
+                common::color::WHITE
+            } else {
+                common::color::BLACK
+            },
+        );
+    }*/
+
+    /*
+    let img_vec = img.to_vec();
+    for y in 0..img.height() as i32 {
+        let y_final = pos.y + y;
+        for x_from in 0..(img.width() as usize / 32) {
+            let x_to_excl = x_from + 32;
+            let mut pixels_chunk: [u8; 32] = [0u8; 32];
+            pixels_chunk.copy_from_slice(&img_vec[x_from..x_to_excl]);
+            //img_vec[x_from..x_to_excl]
+            let pixels = u8x32::from_array(pixels_chunk);
+            pixels.mul(255);
+        }
+    }*/
 }

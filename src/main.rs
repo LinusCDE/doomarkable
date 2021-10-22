@@ -1,5 +1,8 @@
 //#[feature(edition2021)]
-//#![feature(portable_simd)]
+#![feature(portable_simd)]
+
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 use doomgeneric::doom::{self, KeyData};
 use libremarkable::cgmath::Point2;
@@ -13,7 +16,6 @@ use std::collections::VecDeque;
 use std::time::{Duration, Instant};
 
 mod blue_noise_dither;
-const SCALE_FACTOR: u32 = 2;
 
 struct Game {
     image: std::sync::Arc<std::sync::Mutex<RgbImage>>,
@@ -156,8 +158,6 @@ fn main() {
 }
 
 fn draw_image_mono(fb: &mut Framebuffer, pos: Point2<i32>, img: &libremarkable::image::GrayImage) {
-    assert!(img.width() % 32 == 0);
-
     /*for (x, y, pixel) in img.enumerate_pixels() {
         let pixel_pos = pos + vec2(x as i32, y as i32);
         fb.write_pixel(

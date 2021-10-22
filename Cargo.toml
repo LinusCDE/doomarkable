@@ -7,10 +7,13 @@ edition = "2018"
 
 [dependencies]
 doomgeneric = { git = "https://github.com/LinusCDE/doomgeneric-rs.git", tag = "0.2.0" }
-libremarkable = "0.4.3"
+libremarkable = "0.5.0"
 lazy_static = "1.4"
 #fxhash = "0.2.1"
-#core_simd = { git = "https://github.com/rust-lang/portable-simd.git", rev = "721164247cd609d04dc8f0bb2483bde83f2a7fd6" }
+core_simd = { git = "https://github.com/rust-lang/portable-simd.git", rev = "721164247cd609d04dc8f0bb2483bde83f2a7fd6" }
+mimalloc = { version = "0.1.17", default-features = false }
 
 [profile.release]
-lto = true
+lto = "fat"
+codegen-units = 1
+panic = "abort"

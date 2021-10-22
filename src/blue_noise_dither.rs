@@ -3,7 +3,8 @@
 //! with some small performance improvements and other adjustments.
 
 use libremarkable::image::{GrayImage, ImageBuffer, Luma, RgbImage};
-use std::time::Duration;
+use std::io::{BufReader, BufWriter, Read, Write};
+use std::{path::PathBuf, time::Duration};
 
 lazy_static::lazy_static! {
     static ref NOISE_IMG: ImageBuffer<Luma<u8>, Vec<u8>> =
@@ -22,6 +23,7 @@ fn wrap(m: u32, n: u32) -> u32 {
     return n % m;
 }
 
+const LATEST_CACHE_FILE_VERSION: u8 = 0x00;
 pub struct CachedDither2XTo4X {
     //dither_cache: fxhash::FxHashMap<(Luma<u8>, u32, u32), [Luma<u8>; 16]>,
     dither_cache: Vec<u16>,
@@ -32,12 +34,54 @@ impl CachedDither2XTo4X {
         let mut instance = Self {
             dither_cache: Default::default(),
         };
-        instance.calc_full_cache(width, height);
+
+        if let Some(dither_cache) = Self::read_cache_file(width, height) {
+            instance.dither_cache = dither_cache;
+        } else {
+            instance.calc_full_cache(width, height);
+            Self::write_cache_file(&instance.dither_cache);
+        }
+
         instance
     }
 
+    fn cache_file() -> std::path::PathBuf {
+        PathBuf::from("/home/root/.cache/doomarkable/dither_cache.bin")
+    }
+
+    fn read_cache_file(width: u32, height: u32) -> Option<Vec<u16>> {
+        if !Self::cache_file().exists() {
+            None
+        } else {
+            let mut reader = BufReader::new(std::fs::File::open(Self::cache_file()).unwrap());
+            let mut version = [0xFFu8; 1];
+            reader.read_exact(&mut version).unwrap();
+            if version[0] != LATEST_CACHE_FILE_VERSION {
+                return None;
+            }
+            let mut dither_cache = vec![0u16; (width as usize / 2) * (height as usize / 2) * 256];
+            for i in 0..dither_cache.len() {
+                let mut data = [0u8; 2];
+                reader.read_exact(&mut data).unwrap();
+                dither_cache[i] = u16::from_ne_bytes(data);
+            }
+            Some(dither_cache)
+        }
+    }
+
+    fn write_cache_file(dither_cache: &[u16]) {
+        std::fs::create_dir_all(Self::cache_file().parent().unwrap()).unwrap();
+
+        let mut writer = BufWriter::new(std::fs::File::create(Self::cache_file()).unwrap());
+
+        writer.write_all(&[LATEST_CACHE_FILE_VERSION]).unwrap();
+        for val in dither_cache {
+            writer.write_all(&val.to_ne_bytes()).unwrap();
+        }
+    }
+
     pub fn calc_full_cache(&mut self, width: u32, height: u32) {
-        self.dither_cache = vec![0u16; (width as usize / 2) * (height as usize / 2) * 256 * 2];
+        self.dither_cache = vec![0u16; (width as usize / 2) * (height as usize / 2) * 256];
 
         // Pre calculate
         for y in 0..(height / 2) {

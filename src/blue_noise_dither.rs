@@ -185,27 +185,20 @@ impl CachedDither2XTo4X {
                 new_img.put_pixel(x_scaled + 0, y_scaled + 1, res[2]);
                 new_img.put_pixel(x_scaled + 1, y_scaled + 1, res[3]);*/
                 //let i_scaled = (width as usize * 4) * y as usize * 4 + (x as usize * 4);
+                let lhs = ((res >> 8) & 0xFF) as u8;
+                let rhs = (res & 0xFF) as u8;
                 let expanded: [u8; 16] = [
-                    ((res >> 00) & 0x1) as u8 * 255,
-                    ((res >> 01) & 0x1) as u8 * 255,
-                    ((res >> 02) & 0x1) as u8 * 255,
-                    ((res >> 03) & 0x1) as u8 * 255,
-                    ((res >> 04) & 0x1) as u8 * 255,
-                    ((res >> 05) & 0x1) as u8 * 255,
-                    ((res >> 06) & 0x1) as u8 * 255,
-                    ((res >> 07) & 0x1) as u8 * 255,
-                    ((res >> 08) & 0x1) as u8 * 255,
-                    ((res >> 09) & 0x1) as u8 * 255,
-                    ((res >> 10) & 0x1) as u8 * 255,
-                    ((res >> 11) & 0x1) as u8 * 255,
-                    ((res >> 12) & 0x1) as u8 * 255,
-                    ((res >> 13) & 0x1) as u8 * 255,
-                    ((res >> 14) & 0x1) as u8 * 255,
-                    ((res >> 15) & 0x1) as u8 * 255,
+                    lhs, lhs, lhs, lhs, lhs, lhs, lhs, lhs, rhs, rhs, rhs, rhs, rhs, rhs, rhs, rhs,
+                ];
+                let rshift: [u8; 16] = [
+                    00, 01, 02, 03, 04, 05, 06, 07, 00, 01, 02, 03, 04, 05, 06, 07,
                 ];
                 // Doesn't improve performance
-                //let expanded = core_simd::u8x16::from_array(expanded);
-                //let expanded = expanded.mul(255);
+                let mut expanded = core_simd::u8x16::from_array(expanded);
+                let rshift = core_simd::u8x16::from_array(rshift);
+                expanded >>= rshift;
+                expanded &= 0x01;
+                expanded *= 255;
 
                 new_img_vec[i_scaled + 0] = expanded[00];
                 new_img_vec[i_scaled + 1] = expanded[01];

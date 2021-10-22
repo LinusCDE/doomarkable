@@ -9,5 +9,8 @@ edition = "2018"
 doomgeneric = { git = "https://github.com/LinusCDE/doomgeneric-rs.git", tag = "0.2.0" }
 libremarkable = "0.4.3"
 lazy_static = "1.4"
-fxhash = "0.2.1"
+#fxhash = "0.2.1"
 #core_simd = { git = "https://github.com/rust-lang/portable-simd.git", rev = "721164247cd609d04dc8f0bb2483bde83f2a7fd6" }
+
+[profile.release]
+lto = true

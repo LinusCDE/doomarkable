@@ -86,7 +86,7 @@ fn main() {
         true,
     );
     let start = Instant::now();
-    let mut ditherer = blue_noise_dither::CachedDither0XTo4X::new(
+    let mut ditherer = blue_noise_dither::CachedDither2XTo4X::new(
         doom::DOOMGENERIC_RESX as u32,
         doom::DOOMGENERIC_RESY as u32,
     );

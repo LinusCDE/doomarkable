@@ -4,7 +4,7 @@
 
 use libremarkable::image::{GrayImage, ImageBuffer, Luma, RgbImage};
 use std::io::{BufReader, BufWriter, Read, Write};
-use std::{path::PathBuf, time::Duration};
+use std::path::PathBuf;
 
 lazy_static::lazy_static! {
     static ref NOISE_IMG: ImageBuffer<Luma<u8>, Vec<u8>> =
@@ -45,7 +45,7 @@ impl CachedDither2XTo4X {
         instance
     }
 
-    fn cache_file() -> std::path::PathBuf {
+    fn cache_file() -> PathBuf {
         PathBuf::from("/home/root/.cache/doomarkable/dither_cache.bin")
     }
 
@@ -98,12 +98,12 @@ impl CachedDither2XTo4X {
 
     #[inline]
     pub fn calc_dither_cache_index(old_pixel: &Luma<u8>, x: u32, y: u32) -> usize {
-        const pix_width: usize = 256;
-        const line_width: usize = 320 * pix_width;
+        const PIX_WIDTH: usize = 256;
+        const LINE_WIDTH: usize = 320 * PIX_WIDTH;
         let x = x as usize;
         let y = y as usize;
         let pix_luma_val = old_pixel.data[0] as usize;
-        (y * line_width) + (x * pix_width) + pix_luma_val
+        (y * LINE_WIDTH) + (x * PIX_WIDTH) + pix_luma_val
     }
 
     #[inline]
@@ -156,7 +156,7 @@ impl CachedDither2XTo4X {
 
         // Using such a naive loop without any additions makes the code about 30% faster!
         let mut i_scaled = 0;
-        let mut x: u32 = 0;
+        let mut x: u32;
         let mut y: u32 = 0;
         //let mut x_scaled: u32 = 0;
         //let mut y_scaled: u32 = 0;

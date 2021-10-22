@@ -2,7 +2,7 @@
 //#![feature(portable_simd)]
 
 use doomgeneric::doom::{self, KeyData};
-use libremarkable::cgmath::{vec2, Point2};
+use libremarkable::cgmath::Point2;
 use libremarkable::framebuffer::common;
 use libremarkable::framebuffer::core::Framebuffer;
 use libremarkable::framebuffer::{
@@ -10,7 +10,6 @@ use libremarkable::framebuffer::{
 };
 use libremarkable::image::RgbImage;
 use std::collections::VecDeque;
-use std::ops::Mul;
 use std::time::{Duration, Instant};
 
 mod blue_noise_dither;
@@ -178,7 +177,7 @@ fn draw_image_mono(fb: &mut Framebuffer, pos: Point2<i32>, img: &libremarkable::
     //let img_vec = img.to_vec();
     //let x_abs_end = pos.x + img.width();
     //let y_abs_end = pos.y + img.height();
-    let mut x = 0;
+    let mut x;
     let mut y = 0;
     loop {
         if y == height {
@@ -215,7 +214,8 @@ fn draw_image_mono(fb: &mut Framebuffer, pos: Point2<i32>, img: &libremarkable::
             height,
         },
         &fb_raw_data,
-    );
+    )
+    .unwrap();
 
     /*
     for (x, y, pixel) in img.enumerate_pixels() {

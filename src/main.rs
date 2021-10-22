@@ -1,5 +1,5 @@
 //#[feature(edition2021)]
-#![feature(portable_simd)]
+//#![feature(portable_simd)]
 
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
@@ -16,6 +16,8 @@ use std::collections::VecDeque;
 use std::time::{Duration, Instant};
 
 mod blue_noise_dither;
+
+const SCALE_FACTOR: usize = 2;
 
 struct Game {
     image: std::sync::Arc<std::sync::Mutex<RgbImage>>,

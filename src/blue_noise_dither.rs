@@ -185,40 +185,25 @@ impl CachedDither2XTo4X {
                 new_img.put_pixel(x_scaled + 0, y_scaled + 1, res[2]);
                 new_img.put_pixel(x_scaled + 1, y_scaled + 1, res[3]);*/
                 //let i_scaled = (width as usize * 4) * y as usize * 4 + (x as usize * 4);
-                let lhs = ((res >> 8) & 0xFF) as u8;
-                let rhs = (res & 0xFF) as u8;
-                let expanded: [u8; 16] = [
-                    lhs, lhs, lhs, lhs, lhs, lhs, lhs, lhs, rhs, rhs, rhs, rhs, rhs, rhs, rhs, rhs,
-                ];
-                let rshift: [u8; 16] = [
-                    00, 01, 02, 03, 04, 05, 06, 07, 00, 01, 02, 03, 04, 05, 06, 07,
-                ];
-                // Doesn't improve performance
-                let mut expanded = core_simd::u8x16::from_array(expanded);
-                let rshift = core_simd::u8x16::from_array(rshift);
-                expanded >>= rshift;
-                expanded &= 0x01;
-                expanded *= 255;
-
-                new_img_vec[i_scaled + 0] = expanded[00];
-                new_img_vec[i_scaled + 1] = expanded[01];
-                new_img_vec[i_scaled + 2] = expanded[02];
-                new_img_vec[i_scaled + 3] = expanded[03];
+                new_img_vec[i_scaled + 0] = ((res >> 00) & 0x1) as u8 * 255;
+                new_img_vec[i_scaled + 1] = ((res >> 01) & 0x1) as u8 * 255;
+                new_img_vec[i_scaled + 2] = ((res >> 02) & 0x1) as u8 * 255;
+                new_img_vec[i_scaled + 3] = ((res >> 03) & 0x1) as u8 * 255;
                 let i_scaled_nextline = i_scaled + (width as usize * 4);
-                new_img_vec[i_scaled_nextline + 0] = expanded[04];
-                new_img_vec[i_scaled_nextline + 1] = expanded[05];
-                new_img_vec[i_scaled_nextline + 2] = expanded[06];
-                new_img_vec[i_scaled_nextline + 3] = expanded[07];
+                new_img_vec[i_scaled_nextline + 0] = ((res >> 04) & 0x1) as u8 * 255;
+                new_img_vec[i_scaled_nextline + 1] = ((res >> 05) & 0x1) as u8 * 255;
+                new_img_vec[i_scaled_nextline + 2] = ((res >> 06) & 0x1) as u8 * 255;
+                new_img_vec[i_scaled_nextline + 3] = ((res >> 07) & 0x1) as u8 * 255;
                 let i_scaled_nextline = i_scaled_nextline + (width as usize * 4);
-                new_img_vec[i_scaled_nextline + 0] = expanded[08];
-                new_img_vec[i_scaled_nextline + 1] = expanded[09];
-                new_img_vec[i_scaled_nextline + 2] = expanded[10];
-                new_img_vec[i_scaled_nextline + 3] = expanded[11];
+                new_img_vec[i_scaled_nextline + 0] = ((res >> 08) & 0x1) as u8 * 255;
+                new_img_vec[i_scaled_nextline + 1] = ((res >> 09) & 0x1) as u8 * 255;
+                new_img_vec[i_scaled_nextline + 2] = ((res >> 10) & 0x1) as u8 * 255;
+                new_img_vec[i_scaled_nextline + 3] = ((res >> 11) & 0x1) as u8 * 255;
                 let i_scaled_nextline = i_scaled_nextline + (width as usize * 4);
-                new_img_vec[i_scaled_nextline + 0] = expanded[12];
-                new_img_vec[i_scaled_nextline + 1] = expanded[13];
-                new_img_vec[i_scaled_nextline + 2] = expanded[14];
-                new_img_vec[i_scaled_nextline + 3] = expanded[15];
+                new_img_vec[i_scaled_nextline + 0] = ((res >> 12) & 0x1) as u8 * 255;
+                new_img_vec[i_scaled_nextline + 1] = ((res >> 13) & 0x1) as u8 * 255;
+                new_img_vec[i_scaled_nextline + 2] = ((res >> 14) & 0x1) as u8 * 255;
+                new_img_vec[i_scaled_nextline + 3] = ((res >> 15) & 0x1) as u8 * 255;
 
                 x += 1;
                 //x_scaled += 4;

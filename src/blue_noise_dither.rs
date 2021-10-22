@@ -23,7 +23,7 @@ fn wrap(m: u32, n: u32) -> u32 {
     return n % m;
 }
 
-const LATEST_CACHE_FILE_VERSION: u8 = 0x00;
+const LATEST_CACHE_FILE_VERSION: u8 = 1;
 pub struct CachedDither2XTo4X {
     //dither_cache: fxhash::FxHashMap<(Luma<u8>, u32, u32), [Luma<u8>; 16]>,
     dither_cache: Vec<u16>,
@@ -116,8 +116,8 @@ impl CachedDither2XTo4X {
         //let mut res = [Luma([0]); 16];
         let mut res = 0u16;
         let mut i = 0;
-        for x_offset in 0..4 {
-            for y_offset in 0..4 {
+        for y_offset in 0..4 {
+            for x_offset in 0..4 {
                 let wrap_x = wrap(*NOISE_WIDTH, x * 4 + x_offset);
                 let wrap_y = wrap(*NOISE_HEIGHT, y * 4 + y_offset);
 

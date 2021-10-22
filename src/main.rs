@@ -174,33 +174,16 @@ fn draw_image_mono(fb: &mut Framebuffer, pos: Point2<i32>, img: &libremarkable::
     let height = img.height();
     let mut fb_raw_data: Vec<u8> =
         Vec::with_capacity(img.width() as usize * 2 * img.height() as usize);
-    //let img_vec = img.to_vec();
+    let img_vec = img.to_vec();
     //let x_abs_end = pos.x + img.width();
     //let y_abs_end = pos.y + img.height();
-    let mut x;
-    let mut y = 0;
-    loop {
-        if y == height {
-            break;
-        }
-
-        x = 0;
-
-        loop {
-            if x == width {
-                break;
-            }
-
-            let pixel_value = img.get_pixel(x, y).data[0];
-            fb_raw_data.push(pixel_value);
-            fb_raw_data.push(pixel_value);
-
-            x += 1;
-            //img_pixel_index += 1;
-        }
-
-        y += 1;
+    //let start = Instant::now();
+    for pixel_value in img_vec {
+        fb_raw_data.push(pixel_value);
+        fb_raw_data.push(pixel_value);
     }
+    //println!("Draw: Loop took {:?}", start.elapsed());
+
     /*for img_pixel_index in 0..img_vec.len() {
         let pixel_value = img_vec[img_pixel_index];
         fb_raw_data.push(pixel_value);

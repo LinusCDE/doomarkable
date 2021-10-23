@@ -1,4 +1,3 @@
-//#[feature(edition2021)]
 //#![feature(portable_simd)]
 
 #[global_allocator]
@@ -28,28 +27,6 @@ struct Game {
     image: std::sync::Arc<std::sync::Mutex<RgbImage>>,
     keydata_receiver: std::sync::mpsc::Receiver<KeyData>,
 }
-
-/*
-fn button_to_doom_key(button: Button) -> Option<u8> {
-        match button {
-        Button::Keyboard(key) => match key {
-            // Map keyboard keys from m_controller.c
-            Key::Right => Some(unsafe { doom::key_right as u8 }),
-            Key::Left => Some(unsafe { doom::key_left as u8 }),
-            Key::Up => Some(unsafe { doom::key_up as u8 }),
-            Key::Down => Some(unsafe { doom::key_down as u8 }),
-            Key::Comma => Some(unsafe { doom::key_strafeleft as u8 }),
-            Key::Period => Some(unsafe { doom::key_straferight as u8 }),
-            Key::RCtrl => Some(unsafe { doom::key_fire as u8 }),
-            Key::Space => Some(unsafe { doom::key_use as u8 }),
-            Key::LAlt | Key::RAlt => Some(unsafe { doom::key_strafe as u8 }),
-            Key::LShift | Key::RShift => Some(unsafe { doom::key_speed as u8 }),
-            // Let doom deal with the rest
-            _ => Some(key as u8),
-        },
-        _ => None,
-    }
-}*/
 
 impl DoomGeneric for Game {
     fn draw_frame(&mut self, screen_buffer: &[u32], xres: usize, yres: usize) {
@@ -294,7 +271,6 @@ fn main() {
 
             let rgb_img = &image.lock().unwrap().clone();
             let start = Instant::now();
-            //let dithered_img = blue_noise_dither::dither_image(rgb_img, SCALE_FACTOR);
             let dithered_img = ditherer.dither_image(rgb_img);
             debug!("Dithering took {:?}", start.elapsed());
 
@@ -403,37 +379,16 @@ fn find_updates(
 }
 
 fn draw_image_mono(fb: &mut Framebuffer, pos: Point2<i32>, img: &libremarkable::image::GrayImage) {
-    /*for (x, y, pixel) in img.enumerate_pixels() {
-        let pixel_pos = pos + vec2(x as i32, y as i32);
-        fb.write_pixel(
-            pixel_pos.cast().unwrap(),
-            if pixel.data[0] > 0 {
-                common::color::WHITE
-            } else {
-                common::color::BLACK
-            },
-        );
-    }*/
-
     let width = img.width();
     let height = img.height();
     let mut fb_raw_data: Vec<u8> =
         Vec::with_capacity(img.width() as usize * 2 * img.height() as usize);
     let img_vec = img.to_vec();
-    //let x_abs_end = pos.x + img.width();
-    //let y_abs_end = pos.y + img.height();
-    //let start = Instant::now();
     for pixel_value in img_vec {
         fb_raw_data.push(pixel_value);
         fb_raw_data.push(pixel_value);
     }
-    //debug!("Draw: Loop took {:?}", start.elapsed());
 
-    /*for img_pixel_index in 0..img_vec.len() {
-        let pixel_value = img_vec[img_pixel_index];
-        fb_raw_data.push(pixel_value);
-        fb_raw_data.push(pixel_value);
-    }*/
     fb.restore_region(
         common::mxcfb_rect {
             top: pos.y as u32,
@@ -444,31 +399,4 @@ fn draw_image_mono(fb: &mut Framebuffer, pos: Point2<i32>, img: &libremarkable::
         &fb_raw_data,
     )
     .unwrap();
-
-    /*
-    for (x, y, pixel) in img.enumerate_pixels() {
-        let pixel_pos = pos + vec2(x as i32, y as i32);
-        fb.write_pixel(
-            pixel_pos.cast().unwrap(),
-            if pixel.data[0] > 0 {
-                common::color::WHITE
-            } else {
-                common::color::BLACK
-            },
-        );
-    }*/
-
-    /*
-    let img_vec = img.to_vec();
-    for y in 0..img.height() as i32 {
-        let y_final = pos.y + y;
-        for x_from in 0..(img.width() as usize / 32) {
-            let x_to_excl = x_from + 32;
-            let mut pixels_chunk: [u8; 32] = [0u8; 32];
-            pixels_chunk.copy_from_slice(&img_vec[x_from..x_to_excl]);
-            //img_vec[x_from..x_to_excl]
-            let pixels = u8x32::from_array(pixels_chunk);
-            pixels.mul(255);
-        }
-    }*/
 }

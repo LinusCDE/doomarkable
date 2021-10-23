@@ -197,6 +197,7 @@ dependencies = [
  "log",
  "mimalloc",
  "once_cell",
+ "zstd",
 ]
 
 [[package]]

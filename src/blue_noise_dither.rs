@@ -52,14 +52,17 @@ impl CachedDither2XTo4X {
     }
 
     fn cache_file() -> PathBuf {
-        PathBuf::from("/home/root/.cache/doomarkable/dither_cache.bin")
+        PathBuf::from("/home/root/.cache/doomarkable/dither_cache.bin.zst")
     }
 
     fn read_cache_file(width: u32, height: u32) -> Option<Vec<u16>> {
         if !Self::cache_file().exists() {
             None
         } else {
-            let mut reader = BufReader::new(std::fs::File::open(Self::cache_file()).unwrap());
+            let mut reader = BufReader::new(
+                zstd::stream::Decoder::new(std::fs::File::open(Self::cache_file()).unwrap())
+                    .unwrap(),
+            );
             let mut version = [0xFFu8; 1];
             reader.read_exact(&mut version).unwrap();
             if version[0] != LATEST_CACHE_FILE_VERSION {
@@ -78,7 +81,13 @@ impl CachedDither2XTo4X {
     fn write_cache_file(dither_cache: &[u16]) {
         std::fs::create_dir_all(Self::cache_file().parent().unwrap()).unwrap();
 
-        let mut writer = BufWriter::new(std::fs::File::create(Self::cache_file()).unwrap());
+        let mut writer = BufWriter::new(
+            zstd::stream::Encoder::new(
+                std::fs::File::create(Self::cache_file()).unwrap(),
+                zstd::DEFAULT_COMPRESSION_LEVEL,
+            )
+            .unwrap(),
+        );
 
         writer.write_all(&[LATEST_CACHE_FILE_VERSION]).unwrap();
         for val in dither_cache {

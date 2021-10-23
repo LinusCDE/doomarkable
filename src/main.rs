@@ -87,18 +87,63 @@ fn main() {
         0,
         true,
     );
+    fb.clear();
 
     // The dither_cache was calculated in build/main.rs and
     // this env is set to the file path containing this cache.
     let start = Instant::now();
     let dither_cache_compressed = include_bytes!(env!("OUT_DIR_DITHERCACHE_FILE"));
     let mut dither_cache_raw = Cursor::new(Vec::with_capacity(
-        blue_noise_dither::CachedDither2XTo4X::calc_dither_cache_len(320, 240) * 2,
+        blue_noise_dither::CachedDither2XTo4X::calc_dither_cache_len(
+            game::DOOMGENERIC_RESX as u32 / 2,
+            game::DOOMGENERIC_RESY as u32 / 2,
+        ) * 2,
     ));
     zstd::stream::copy_decode(Cursor::new(dither_cache_compressed), &mut dither_cache_raw).unwrap();
     let dither_cache_raw = dither_cache_raw.into_inner();
     let mut ditherer = blue_noise_dither::CachedDither2XTo4X::new(dither_cache_raw);
     info!("Loaded dither cache in {:?}", start.elapsed());
+
+    // Title
+    let title_text = concat!("DOOMarkable v", env!("CARGO_PKG_VERSION"));
+    let subtitle_text = "https://github.com/LinusCDE/doomarkable";
+    let title_size = 80;
+    let subtitle_size = 30;
+    let title_rect = fb.draw_text(
+        Point2 { x: 0f32, y: 0f32 },
+        title_text,
+        title_size as f32,
+        common::color::BLACK,
+        true,
+    );
+    let subtitle_rect = fb.draw_text(
+        Point2 { x: 0f32, y: 0f32 },
+        subtitle_text,
+        subtitle_size as f32,
+        common::color::BLACK,
+        true,
+    );
+
+    fb.draw_text(
+        Point2 {
+            x: (common::DISPLAYWIDTH as u32 - title_rect.width) as f32 / 2.0,
+            y: (62 - 20 + title_size) as f32,
+        },
+        title_text,
+        title_size as f32,
+        common::color::BLACK,
+        false,
+    );
+    fb.draw_text(
+        Point2 {
+            x: (common::DISPLAYWIDTH as u32 - subtitle_rect.width) as f32 / 2.0,
+            y: (62 - 20 + title_size + subtitle_size) as f32,
+        },
+        subtitle_text,
+        subtitle_size as f32,
+        common::color::BLACK,
+        false,
+    );
 
     // Keys
     let key_boxes = [
@@ -196,7 +241,6 @@ fn main() {
     key_labels.insert(keys::KEY_ENTER, (25.0, "Enter"));
     key_labels.insert(*keys::KEY_USE, (25.0, "Use"));
 
-    fb.clear();
     for (boxx, key) in &key_boxes {
         fb.draw_rect(
             Point2 {
@@ -252,7 +296,7 @@ fn main() {
         let pos = Point2 {
             x: (common::DISPLAYWIDTH as i32 - width as i32) / 2,
             //y: (common::DISPLAYHEIGHT as i32 - height as i32) / 2,
-            y: 62,
+            y: 62 + 140,
         };
 
         loop {

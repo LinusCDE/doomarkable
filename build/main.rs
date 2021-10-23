@@ -10,7 +10,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("cargo:rerun-if-changed=build/");
 
     //let start = std::time::Instant::now();
-    let dither_cache = blue_noise_calculator::calc_full_cache(320, 240);
+    let dither_cache = blue_noise_calculator::calc_full_cache(320, 200);
     //println!("cargo:warning=Calculation took {:?}", start.elapsed());
 
     let ref f_path = PathBuf::from(env::var("OUT_DIR")?).join("dither_cache.bin.zst");

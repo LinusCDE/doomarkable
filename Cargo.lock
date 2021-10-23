@@ -219,7 +219,7 @@ dependencies = [
 
 [[package]]
 name = "doomarkable"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "doomgeneric",
  "env_logger 0.9.0",
@@ -234,8 +234,8 @@ dependencies = [
 
 [[package]]
 name = "doomgeneric"
-version = "0.3.0-beta.1"
-source = "git+https://github.com/LinusCDE/doomgeneric-rs.git?tag=0.3.0-beta.1#a04a662e84b189e0760d96e263400c35da05e34c"
+version = "0.3.0-beta.2"
+source = "git+https://github.com/LinusCDE/doomgeneric-rs.git?tag=0.3.0-beta.2#976253acf56f48384f389ed172c87664ea8def32"
 dependencies = [
  "cc",
  "once_cell",

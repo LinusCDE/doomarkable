@@ -5,15 +5,20 @@
 //! https://github.com/mblode/blue-noise/blob/568d18f5/LICENSE.md
 
 use libremarkable::image::{GrayImage, ImageBuffer, Luma, RgbImage};
+use once_cell::sync::Lazy;
 use std::io::{BufReader, BufWriter, Read, Write};
 use std::path::PathBuf;
 
-lazy_static::lazy_static! {
-    static ref NOISE_IMG: ImageBuffer<Luma<u8>, Vec<u8>> =
-        libremarkable::image::load_from_memory(include_bytes!("../img/noise.png")).expect("Load noise.png").grayscale().as_luma8().unwrap().to_owned();
-    static ref NOISE_WIDTH: u32 = NOISE_IMG.dimensions().0;
-    static ref NOISE_HEIGHT: u32 = NOISE_IMG.dimensions().1;
-}
+static NOISE_IMG: Lazy<ImageBuffer<Luma<u8>, Vec<u8>>> = Lazy::new(|| {
+    libremarkable::image::load_from_memory(include_bytes!("../img/noise.png"))
+        .expect("Load noise.png")
+        .grayscale()
+        .as_luma8()
+        .unwrap()
+        .to_owned()
+});
+static NOISE_WIDTH: Lazy<u32> = Lazy::new(|| NOISE_IMG.width());
+static NOISE_HEIGHT: Lazy<u32> = Lazy::new(|| NOISE_IMG.height());
 
 #[inline]
 fn is_bright(noise_color: &Luma<u8>, picture_color: &Luma<u8>) -> bool {

@@ -4,7 +4,7 @@
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
-use doomgeneric::doom::{self, KeyData};
+use doomgeneric::{game, game::DoomGeneric, input::keys, input::KeyData};
 use libremarkable::cgmath::{Point2, Vector2};
 use libremarkable::framebuffer::common;
 use libremarkable::framebuffer::core::Framebuffer;
@@ -21,8 +21,6 @@ mod blue_noise_dither;
 
 const SCALE_FACTOR: usize = 2;
 
-const KEYCODE_ESC: u8 = 27;
-const KEYCODE_ENTER: u8 = 13;
 struct Game {
     image: std::sync::Arc<std::sync::Mutex<RgbImage>>,
     keydata_receiver: std::sync::mpsc::Receiver<KeyData>,
@@ -50,7 +48,7 @@ fn button_to_doom_key(button: Button) -> Option<u8> {
     }
 }*/
 
-impl doom::Doom for Game {
+impl DoomGeneric for Game {
     fn draw_frame(&mut self, screen_buffer: &[u32], xres: usize, yres: usize) {
         let mut rgb_img = libremarkable::image::RgbImage::new(xres as u32, yres as u32);
         assert!(xres * yres == screen_buffer.len());
@@ -69,18 +67,13 @@ impl doom::Doom for Game {
 
         *self.image.lock().unwrap() = rgb_img;
     }
-    fn get_key(&mut self) -> Option<doom::KeyData> {
+    fn get_key(&mut self) -> Option<KeyData> {
         self.keydata_receiver.try_recv().ok()
     }
     fn set_window_title(&mut self, _title: &str) {
         //self.indow.ctx.window().set_title(title);
     }
 }
-
-/*extern "C" {
-    // arm_neon.h from toolchain
-    fn vcgt_u8 (uint8x8_t __a, uint8x8_t __b);
-}*/
 
 fn main() {
     let mut fb = Framebuffer::from_path("/dev/fb0");
@@ -115,8 +108,8 @@ fn main() {
 
     let start = Instant::now();
     let mut ditherer = blue_noise_dither::CachedDither2XTo4X::new(
-        doom::DOOMGENERIC_RESX as u32,
-        doom::DOOMGENERIC_RESY as u32,
+        game::DOOMGENERIC_RESX as u32,
+        game::DOOMGENERIC_RESY as u32,
     );
     println!("Precalculated dither in {:?}", start.elapsed());
 
@@ -129,7 +122,7 @@ fn main() {
                 width: 200,
                 height: 200 + 10 + 200,
             },
-            unsafe { doom::key_left as u8 },
+            *keys::KEY_LEFT,
         ),
         (
             common::mxcfb_rect {
@@ -138,7 +131,7 @@ fn main() {
                 width: 200,
                 height: 200,
             },
-            unsafe { doom::key_up as u8 },
+            *keys::KEY_UP,
         ),
         (
             common::mxcfb_rect {
@@ -147,7 +140,7 @@ fn main() {
                 width: 200,
                 height: 200,
             },
-            unsafe { doom::key_down as u8 },
+            *keys::KEY_DOWN,
         ),
         (
             common::mxcfb_rect {
@@ -156,7 +149,7 @@ fn main() {
                 width: 200,
                 height: 200 + 10 + 200,
             },
-            unsafe { doom::key_right as u8 },
+            *keys::KEY_RIGHT,
         ),
         (
             common::mxcfb_rect {
@@ -165,7 +158,7 @@ fn main() {
                 width: 300,
                 height: 200 + 10 + 200,
             },
-            unsafe { doom::key_strafe as u8 },
+            *keys::KEY_STRAFE,
         ),
         (
             common::mxcfb_rect {
@@ -174,7 +167,7 @@ fn main() {
                 width: 300,
                 height: 200 + 10 + 200,
             },
-            unsafe { doom::key_fire as u8 },
+            *keys::KEY_FIRE,
         ),
         (
             common::mxcfb_rect {
@@ -183,7 +176,7 @@ fn main() {
                 width: 300,
                 height: 150,
             },
-            KEYCODE_ESC,
+            keys::KEY_ESCAPE,
         ),
         (
             common::mxcfb_rect {
@@ -192,7 +185,7 @@ fn main() {
                 width: 300,
                 height: 150,
             },
-            KEYCODE_ENTER,
+            keys::KEY_ENTER,
         ),
         (
             common::mxcfb_rect {
@@ -201,20 +194,20 @@ fn main() {
                 width: 300,
                 height: 150 + 10 + 150,
             },
-            unsafe { doom::key_use as u8 },
+            *keys::KEY_USE,
         ),
     ];
 
     let mut key_labels: fxhash::FxHashMap<u8, (f32, &'static str)> = Default::default();
-    key_labels.insert(unsafe { doom::key_left as u8 }, (100.0, "<"));
-    key_labels.insert(unsafe { doom::key_up as u8 }, (100.0, "^"));
-    key_labels.insert(unsafe { doom::key_down as u8 }, (100.0, "v"));
-    key_labels.insert(unsafe { doom::key_right as u8 }, (100.0, ">"));
-    key_labels.insert(unsafe { doom::key_strafe as u8 }, (25.0, "Strafe"));
-    key_labels.insert(unsafe { doom::key_fire as u8 }, (25.0, "Fire"));
-    key_labels.insert(KEYCODE_ESC, (25.0, "ESC"));
-    key_labels.insert(KEYCODE_ENTER, (25.0, "Enter"));
-    key_labels.insert(unsafe { doom::key_use as u8 }, (25.0, "Use"));
+    key_labels.insert(*keys::KEY_LEFT, (100.0, "<"));
+    key_labels.insert(*keys::KEY_UP, (100.0, "^"));
+    key_labels.insert(*keys::KEY_DOWN, (100.0, "v"));
+    key_labels.insert(*keys::KEY_RIGHT, (100.0, ">"));
+    key_labels.insert(*keys::KEY_STRAFE, (25.0, "Strafe"));
+    key_labels.insert(*keys::KEY_FIRE, (25.0, "Fire"));
+    key_labels.insert(keys::KEY_ESCAPE, (25.0, "ESC"));
+    key_labels.insert(keys::KEY_ENTER, (25.0, "Enter"));
+    key_labels.insert(*keys::KEY_USE, (25.0, "Use"));
 
     fb.clear();
     for (boxx, key) in &key_boxes {
@@ -261,14 +254,14 @@ fn main() {
     );
 
     let image = std::sync::Arc::new(std::sync::Mutex::new(RgbImage::new(
-        doom::DOOMGENERIC_RESX as u32,
-        doom::DOOMGENERIC_RESY as u32,
+        game::DOOMGENERIC_RESX as u32,
+        game::DOOMGENERIC_RESY as u32,
     )));
     let image_clone = image.clone();
     std::thread::spawn(move || {
         let mut last_frame_drawn = Instant::now() - Duration::from_millis(1000);
-        let width = doom::DOOMGENERIC_RESX as u32 * SCALE_FACTOR as u32;
-        let height = doom::DOOMGENERIC_RESY as u32 * SCALE_FACTOR as u32;
+        let width = game::DOOMGENERIC_RESX as u32 * SCALE_FACTOR as u32;
+        let height = game::DOOMGENERIC_RESY as u32 * SCALE_FACTOR as u32;
         let pos = Point2 {
             x: (common::DISPLAYWIDTH as i32 - width as i32) / 2,
             //y: (common::DISPLAYHEIGHT as i32 - height as i32) / 2,
@@ -321,7 +314,7 @@ fn main() {
         }
     });
 
-    let (keydata_tx, keydata_rx) = std::sync::mpsc::channel::<doom::KeyData>();
+    let (keydata_tx, keydata_rx) = std::sync::mpsc::channel::<KeyData>();
 
     std::thread::spawn(move || {
         let (input_tx, input_rx) = std::sync::mpsc::channel::<InputEvent>();
@@ -357,7 +350,7 @@ fn main() {
         }
     });
 
-    doom::init(Game {
+    game::init(Game {
         image: image_clone,
         keydata_receiver: keydata_rx,
     });

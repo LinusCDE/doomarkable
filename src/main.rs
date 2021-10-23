@@ -298,12 +298,25 @@ fn main() {
             //y: (common::DISPLAYHEIGHT as i32 - height as i32) / 2,
             y: 62 + 140,
         };
+        let max_fps = match libremarkable::device::CURRENT_DEVICE.model {
+            // Will probably not quite hit these anyways
+            libremarkable::device::Model::Gen1 => 15,
+            // The rM 2 "can" do more, but will result in async frames and more lag. Won't be anymore fluid anyways.
+            libremarkable::device::Model::Gen2 => 3,
+        };
+        let frame_duration = Duration::from_micros(1000000 / max_fps);
 
         loop {
-            // Useing this to artificially lower the refresh rate on rm2
-            // Limit all models to 15 fps
-            if last_frame_drawn.elapsed() < Duration::from_millis(66) {
-                std::thread::sleep(Duration::from_millis(10));
+            // Limit fps
+            let elapsed = last_frame_drawn.elapsed();
+            if elapsed < frame_duration {
+                //debug!("Hitting max fps!!!");
+                let remaining = frame_duration - elapsed;
+                if remaining <= Duration::from_millis(2) {
+                    std::thread::yield_now();
+                } else {
+                    std::thread::sleep(remaining - Duration::from_millis(1));
+                }
                 continue;
             }
 
@@ -321,6 +334,11 @@ fn main() {
             let start = Instant::now();
             //fb.draw_image(&dithered_img, pos);
             draw_image_mono(&mut fb, pos, &dithered_img);
+
+            let waveform = match libremarkable::device::CURRENT_DEVICE.model {
+                libremarkable::device::Model::Gen1 => common::waveform_mode::WAVEFORM_MODE_GLR16,
+                libremarkable::device::Model::Gen2 => common::waveform_mode::WAVEFORM_MODE_DU,
+            };
             fb.partial_refresh(
                 &common::mxcfb_rect {
                     left: pos.x as u32,
@@ -330,7 +348,8 @@ fn main() {
                 },
                 PartialRefreshMode::Async,
                 //common::waveform_mode::WAVEFORM_MODE_DU,
-                common::waveform_mode::WAVEFORM_MODE_GLR16,
+                //common::waveform_mode::WAVEFORM_MODE_GLR16,
+                waveform,
                 common::display_temp::TEMP_USE_REMARKABLE_DRAW,
                 common::dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
                 0,

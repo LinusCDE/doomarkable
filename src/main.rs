@@ -11,12 +11,14 @@ use libremarkable::cgmath::{Point2, Vector2};
 use libremarkable::framebuffer::common;
 use libremarkable::framebuffer::core::Framebuffer;
 use libremarkable::framebuffer::{
-    FramebufferBase, FramebufferDraw, FramebufferIO, FramebufferRefresh,
+    refresh::PartialRefreshMode, FramebufferBase, FramebufferDraw, FramebufferIO,
+    FramebufferRefresh,
 };
-use libremarkable::image::RgbImage;
+use libremarkable::image::{DynamicImage, RgbImage};
 use libremarkable::input::{
     ev::EvDevContext, multitouch::Finger, multitouch::MultitouchEvent, InputDevice, InputEvent,
 };
+use std::io::Cursor;
 use std::time::{Duration, Instant};
 
 mod blue_noise_dither;
@@ -62,41 +64,41 @@ fn main() {
     env_logger::init();
 
     let mut fb = Framebuffer::from_path("/dev/fb0");
-    fb.clear();
-    fb.draw_text(
+    let mut preparing_text_rect = fb.draw_text(
         Point2 {
-            x: 100f32,
+            x: 600f32,
             y: (1872 / 2) as f32,
         },
-        "Loading doom...",
+        "Preparing...",
         50f32,
         common::color::BLACK,
         false,
     );
-    fb.draw_text(
-        Point2 {
-            x: 100f32,
-            y: (1872 / 2 + 75) as f32,
-        },
-        "If first started, this will take about a minute.",
-        50f32,
-        common::color::BLACK,
-        false,
-    );
-    fb.full_refresh(
-        common::waveform_mode::WAVEFORM_MODE_GC16,
-        common::display_temp::TEMP_USE_MAX,
+    preparing_text_rect.left -= 50;
+    preparing_text_rect.top -= 50;
+    preparing_text_rect.width += 50 * 2;
+    preparing_text_rect.height += 50 * 2;
+    fb.partial_refresh(
+        &preparing_text_rect,
+        PartialRefreshMode::Wait,
+        common::waveform_mode::WAVEFORM_MODE_GC16_FAST,
+        common::display_temp::TEMP_USE_AMBIENT,
         common::dither_mode::EPDC_FLAG_USE_REMARKABLE_DITHER,
         0,
         true,
     );
 
+    // The dither_cache was calculated in build/main.rs and
+    // this env is set to the file path containing this cache.
     let start = Instant::now();
-    let mut ditherer = blue_noise_dither::CachedDither2XTo4X::new(
-        game::DOOMGENERIC_RESX as u32,
-        game::DOOMGENERIC_RESY as u32,
-    );
-    info!("Loaded dither in {:?}", start.elapsed());
+    let dither_cache_compressed = include_bytes!(env!("OUT_DIR_DITHERCACHE_FILE"));
+    let mut dither_cache_raw = Cursor::new(Vec::with_capacity(
+        blue_noise_dither::CachedDither2XTo4X::calc_dither_cache_len(320, 240) * 2,
+    ));
+    zstd::stream::copy_decode(Cursor::new(dither_cache_compressed), &mut dither_cache_raw).unwrap();
+    let dither_cache_raw = dither_cache_raw.into_inner();
+    let mut ditherer = blue_noise_dither::CachedDither2XTo4X::new(dither_cache_raw);
+    info!("Loaded dither cache in {:?}", start.elapsed());
 
     // Keys
     let key_boxes = [
@@ -271,7 +273,13 @@ fn main() {
 
             let rgb_img = &image.lock().unwrap().clone();
             let start = Instant::now();
-            let dithered_img = ditherer.dither_image(rgb_img);
+            // Downscale 2x (doomgeneric does a simple upscale anyways, so no data lost)
+            // TODO: Remove need for downscaling in doomgeneric-rs
+            let rgb_img = RgbImage::from_fn(rgb_img.width() / 2, rgb_img.height() / 2, |x, y| {
+                *rgb_img.get_pixel(x * 2, y * 2)
+            });
+
+            let dithered_img = ditherer.dither_image(&DynamicImage::ImageRgb8(rgb_img));
             debug!("Dithering took {:?}", start.elapsed());
 
             let start = Instant::now();
@@ -284,7 +292,7 @@ fn main() {
                     width,
                     height,
                 },
-                libremarkable::framebuffer::refresh::PartialRefreshMode::Async,
+                PartialRefreshMode::Async,
                 //common::waveform_mode::WAVEFORM_MODE_DU,
                 common::waveform_mode::WAVEFORM_MODE_GLR16,
                 common::display_temp::TEMP_USE_REMARKABLE_DRAW,

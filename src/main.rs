@@ -301,16 +301,8 @@ fn main() {
 
         loop {
             // Useing this to artificially lower the refresh rate on rm2
-            if libremarkable::device::CURRENT_DEVICE.model == libremarkable::device::Model::Gen2
-                && last_frame_drawn.elapsed() < Duration::from_millis(750)
-            {
-                std::thread::sleep(Duration::from_millis(10));
-                continue;
-            }
-            // Useing this to artificially lower the refresh rate on rm2
-            if libremarkable::device::CURRENT_DEVICE.model == libremarkable::device::Model::Gen1
-                && last_frame_drawn.elapsed() < Duration::from_millis(20)
-            {
+            // Limit all models to 15 fps
+            if last_frame_drawn.elapsed() < Duration::from_millis(66) {
                 std::thread::sleep(Duration::from_millis(10));
                 continue;
             }

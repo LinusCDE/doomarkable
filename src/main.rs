@@ -306,6 +306,10 @@ fn main() {
         };
         let frame_duration = Duration::from_micros(1000000 / max_fps);
 
+        let battery_indicator_update_interval = Duration::from_secs(30);
+        let mut last_battery_indicator_update = Instant::now() - battery_indicator_update_interval;
+        let mut last_battery_percentage = -99;
+
         loop {
             // Limit fps
             let elapsed = last_frame_drawn.elapsed();
@@ -318,6 +322,37 @@ fn main() {
                     std::thread::sleep(remaining - Duration::from_millis(1));
                 }
                 continue;
+            }
+
+            // Battery indicator in corner
+            if last_battery_indicator_update.elapsed() > battery_indicator_update_interval {
+                last_battery_indicator_update = Instant::now();
+                let percentage = libremarkable::battery::percentage().unwrap_or(-1);
+                if percentage != last_battery_percentage {
+                    last_battery_percentage = percentage;
+
+                    let text = format!("{}%    ", percentage); // Spaces to prevent residual text when text gets narrower
+                    let rect = fb.draw_text(
+                        Point2 {
+                            x: 10.0,
+                            y: (common::DISPLAYHEIGHT - 10) as f32,
+                        },
+                        &text,
+                        30f32,
+                        common::color::BLACK,
+                        false,
+                    );
+                    fb.partial_refresh(
+                        &rect,
+                        PartialRefreshMode::Async,
+                        common::waveform_mode::WAVEFORM_MODE_GC16_FAST,
+                        common::display_temp::TEMP_USE_MAX,
+                        common::dither_mode::EPDC_FLAG_USE_REMARKABLE_DITHER,
+                        0,
+                        false,
+                    );
+                    debug!("Updated battery indicator");
+                }
             }
 
             let rgb_img = &image.lock().unwrap().clone();

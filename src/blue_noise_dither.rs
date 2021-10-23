@@ -99,7 +99,7 @@ impl CachedDither2XTo4X {
                     self.dither_cache[Self::calc_dither_cache_index(&Luma([luma]), x, y)] = res;
                 }
             }
-            println!("Y: {}", y);
+            debug!("Y: {}", y);
         }
     }
 
@@ -153,10 +153,9 @@ impl CachedDither2XTo4X {
             }
         }
         let old_img = libremarkable::image::imageops::grayscale(&old_img);
-        println!("Dither: Waited {:?} to grayscale image!", start.elapsed());
+        debug!("Dither: Grayscaling took {:?}", start.elapsed());
 
         let (width, height) = old_img.dimensions();
-        println!("Width: {}, Height: {}", width, height);
 
         //let mut new_img = GrayImage::new(width * 2, height * 2);
         let mut new_img_vec = vec![0u8; (width as usize * 4) * (height as usize * 4)];
@@ -220,10 +219,10 @@ impl CachedDither2XTo4X {
             y += 1;
             //y_scaled += 4;
             i_scaled += width as usize * (4 * 3);
-            //println!("Y: {}, Y_Scaled: {}, i_scaled: {}", y, y_scaled, i_scaled);
+            //debug!("Y: {}, Y_Scaled: {}, i_scaled: {}", y, y_scaled, i_scaled);
         }
 
-        //println!("Dither: Calc took {:?}", dither_durs);
+        //debug!("Dither: Calc took {:?}", dither_durs);
         /*
             for x in 0..width {
                 for y in 0..height {

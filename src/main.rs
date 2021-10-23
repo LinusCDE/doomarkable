@@ -4,6 +4,9 @@
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
+#[macro_use]
+extern crate log;
+
 use doomgeneric::{game, game::DoomGeneric, input::keys, input::KeyData};
 use libremarkable::cgmath::{Point2, Vector2};
 use libremarkable::framebuffer::common;
@@ -76,6 +79,11 @@ impl DoomGeneric for Game {
 }
 
 fn main() {
+    if std::env::var("RUST_LOG").is_err() {
+        std::env::set_var("RUST_LOG", "INFO");
+    }
+    env_logger::init();
+
     let mut fb = Framebuffer::from_path("/dev/fb0");
     fb.clear();
     fb.draw_text(
@@ -111,7 +119,7 @@ fn main() {
         game::DOOMGENERIC_RESX as u32,
         game::DOOMGENERIC_RESY as u32,
     );
-    println!("Precalculated dither in {:?}", start.elapsed());
+    info!("Loaded dither in {:?}", start.elapsed());
 
     // Keys
     let key_boxes = [
@@ -288,7 +296,7 @@ fn main() {
             let start = Instant::now();
             //let dithered_img = blue_noise_dither::dither_image(rgb_img, SCALE_FACTOR);
             let dithered_img = ditherer.dither_image(rgb_img);
-            println!("Waited {:?} to dither image!", start.elapsed());
+            debug!("Dithering took {:?}", start.elapsed());
 
             let start = Instant::now();
             //fb.draw_image(&dithered_img, pos);
@@ -309,7 +317,7 @@ fn main() {
                 false,
             );
 
-            println!("Waited {:?} to draw image!", start.elapsed());
+            debug!("Drawing took {:?}", start.elapsed());
             last_frame_drawn = Instant::now();
         }
     });
@@ -419,7 +427,7 @@ fn draw_image_mono(fb: &mut Framebuffer, pos: Point2<i32>, img: &libremarkable::
         fb_raw_data.push(pixel_value);
         fb_raw_data.push(pixel_value);
     }
-    //println!("Draw: Loop took {:?}", start.elapsed());
+    //debug!("Draw: Loop took {:?}", start.elapsed());
 
     /*for img_pixel_index in 0..img_vec.len() {
         let pixel_value = img_vec[img_pixel_index];

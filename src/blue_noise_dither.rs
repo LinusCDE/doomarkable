@@ -1,6 +1,8 @@
 //! This is a slight modification of [mblode](https://github.com/mblode)'s
 //! [blue-noise code](https://github.com/mblode/blue-noise/blob/main/src/main.rs)
 //! with some small performance improvements and other adjustments.
+//! The base code as and ../img/noise.png are licensed under MIT:
+//! https://github.com/mblode/blue-noise/blob/568d18f5/LICENSE.md
 
 use libremarkable::image::{GrayImage, ImageBuffer, Luma, RgbImage};
 use std::io::{BufReader, BufWriter, Read, Write};

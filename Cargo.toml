@@ -1,6 +1,6 @@
 [package]
 name = "doomarkable"
-version = "0.3.2"
+version = "0.3.3"
 edition = "2018"
 
 # Using build script to generate the dither cache

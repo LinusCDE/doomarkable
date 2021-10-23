@@ -1,7 +1,8 @@
 [package]
 name = "doomarkable"
-version = "0.3.3"
+version = "0.3.4"
 edition = "2018"
+authors = ["Linus <linus@cosmos-ink.net>"]
 
 # Using build script to generate the dither cache
 # and compressing it at compilation so it can be

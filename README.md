@@ -7,7 +7,7 @@ This is a doom port intended for the reMarkable 1.
 
 <img src="https://transfer.cosmos-ink.net/3G3F8j/doom_title_screen.jpg" width="45%">&nbsp;<img src="https://transfer.cosmos-ink.net/ji7NIv/doom_screenshot.jpg" width="45%">
 
-[Demo Video on rM 1](https://youtu.be/wdH3GFU74sM) [Demo Video on rM 2 (no recommended)](https://youtu.be/PFR3QHZ7kGw)
+[Demo Video on rM 1](https://youtu.be/wdH3GFU74sM) | [Demo Video on rM 2 (no recommended)](https://youtu.be/PFR3QHZ7kGw)
 
 ## What's mainly used and how it's done
 

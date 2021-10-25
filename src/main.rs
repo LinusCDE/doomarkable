@@ -88,7 +88,7 @@ fn main() {
         PartialRefreshMode::Wait,
         common::waveform_mode::WAVEFORM_MODE_GC16_FAST,
         common::display_temp::TEMP_USE_AMBIENT,
-        common::dither_mode::EPDC_FLAG_USE_REMARKABLE_DITHER,
+        common::dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
         0,
         true,
     );

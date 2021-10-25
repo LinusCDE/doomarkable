@@ -114,6 +114,83 @@ pub fn create() -> Layout {
             label_size: 25.0,
             action: ButtonAction::SwitchLayout(LayoutId::Settings),
         },
+        Element::Button {
+            rect: common::mxcfb_rect {
+                left: 722 + (75 - 4) * 0,
+                top: 1400 - 300 - 10 - 10,
+                width: 75,
+                height: 75,
+            },
+            label: "2",
+            label_size: 25.0,
+            action: ButtonAction::DoomKey(keys::from_char('2').unwrap()),
+        },
+        Element::Button {
+            rect: common::mxcfb_rect {
+                left: 722 + (75 - 4) * 1,
+                top: 1400 - 300 - 10 - 10,
+                width: 75,
+                height: 75,
+            },
+            label: "3",
+            label_size: 25.0,
+            action: ButtonAction::DoomKey(keys::from_char('3').unwrap()),
+        },
+        Element::Button {
+            rect: common::mxcfb_rect {
+                left: 722 + (75 - 4) * 2,
+                top: 1400 - 300 - 10 - 10,
+                width: 75,
+                height: 75,
+            },
+            label: "4",
+            label_size: 25.0,
+            action: ButtonAction::DoomKey(keys::from_char('4').unwrap()),
+        },
+        Element::Button {
+            rect: common::mxcfb_rect {
+                left: 722 + (75 - 4) * 0,
+                top: 1400 - 300 - 10 - 10 + (75 - 4) * 1,
+                width: 75,
+                height: 75,
+            },
+            label: "5",
+            label_size: 25.0,
+            action: ButtonAction::DoomKey(keys::from_char('5').unwrap()),
+        },
+        Element::Button {
+            rect: common::mxcfb_rect {
+                left: 722 + (75 - 4) * 1,
+                top: 1400 - 300 - 10 - 10 + (75 - 4) * 1,
+                width: 75,
+                height: 75,
+            },
+            label: "6",
+            label_size: 25.0,
+            action: ButtonAction::DoomKey(keys::from_char('6').unwrap()),
+        },
+        Element::Button {
+            rect: common::mxcfb_rect {
+                left: 722 + (75 - 4) * 2,
+                top: 1400 - 300 - 10 - 10 + (75 - 4) * 1,
+                width: 75,
+                height: 75,
+            },
+            label: "7",
+            label_size: 25.0,
+            action: ButtonAction::DoomKey(keys::from_char('7').unwrap()),
+        },
+        Element::Button {
+            rect: common::mxcfb_rect {
+                left: 722 + (75 - 4) * 0,
+                top: 1400 - 300 - 10 - 10 + (75 - 4) * 2,
+                width: (75 - 4) * 3 + 4,
+                height: 75,
+            },
+            label: "Arms",
+            label_size: 25.0,
+            action: ButtonAction::DoomKey(keys::from_char('1').unwrap()),
+        },
     ];
 
     Layout::new(buttons)

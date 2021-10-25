@@ -6,8 +6,8 @@ static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 #[macro_use]
 extern crate log;
 
-use doomgeneric::{game, game::DoomGeneric, input::keys, input::KeyData};
-use libremarkable::cgmath::{Point2, Vector2};
+use doomgeneric::{game, game::DoomGeneric, input::KeyData};
+use libremarkable::cgmath::Point2;
 use libremarkable::framebuffer::common;
 use libremarkable::framebuffer::core::Framebuffer;
 use libremarkable::framebuffer::{
@@ -15,15 +15,18 @@ use libremarkable::framebuffer::{
     FramebufferRefresh,
 };
 use libremarkable::image::{DynamicImage, RgbImage};
-use libremarkable::input::{
-    ev::EvDevContext, multitouch::Finger, multitouch::MultitouchEvent, InputDevice, InputEvent,
-};
+use libremarkable::input::{ev::EvDevContext, InputDevice, InputEvent};
+use once_cell::sync::Lazy;
 use std::io::Cursor;
+use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
 mod blue_noise_dither;
+mod layout;
 
 const SCALE_FACTOR: usize = 2;
+pub static FB: Lazy<Mutex<Framebuffer>> =
+    Lazy::new(|| Mutex::new(Framebuffer::from_path("/dev/fb0")));
 
 struct Game {
     image: std::sync::Arc<std::sync::Mutex<RgbImage>>,
@@ -63,8 +66,7 @@ fn main() {
     }
     env_logger::init();
 
-    let mut fb = Framebuffer::from_path("/dev/fb0");
-    let mut preparing_text_rect = fb.draw_text(
+    let mut preparing_text_rect = FB.lock().unwrap().draw_text(
         Point2 {
             x: 600f32,
             y: (1872 / 2) as f32,
@@ -78,7 +80,7 @@ fn main() {
     preparing_text_rect.top -= 50;
     preparing_text_rect.width += 50 * 2;
     preparing_text_rect.height += 50 * 2;
-    fb.partial_refresh(
+    FB.lock().unwrap().partial_refresh(
         &preparing_text_rect,
         PartialRefreshMode::Wait,
         common::waveform_mode::WAVEFORM_MODE_GC16_FAST,
@@ -87,7 +89,7 @@ fn main() {
         0,
         true,
     );
-    fb.clear();
+    FB.lock().unwrap().clear();
 
     // The dither_cache was calculated in build/main.rs and
     // this env is set to the file path containing this cache.
@@ -109,14 +111,14 @@ fn main() {
     let subtitle_text = "https://github.com/LinusCDE/doomarkable";
     let title_size = 80;
     let subtitle_size = 30;
-    let title_rect = fb.draw_text(
+    let title_rect = FB.lock().unwrap().draw_text(
         Point2 { x: 0f32, y: 0f32 },
         title_text,
         title_size as f32,
         common::color::BLACK,
         true,
     );
-    let subtitle_rect = fb.draw_text(
+    let subtitle_rect = FB.lock().unwrap().draw_text(
         Point2 { x: 0f32, y: 0f32 },
         subtitle_text,
         subtitle_size as f32,
@@ -124,7 +126,7 @@ fn main() {
         true,
     );
 
-    fb.draw_text(
+    FB.lock().unwrap().draw_text(
         Point2 {
             x: (common::DISPLAYWIDTH as u32 - title_rect.width) as f32 / 2.0,
             y: (62 - 20 + title_size) as f32,
@@ -134,7 +136,7 @@ fn main() {
         common::color::BLACK,
         false,
     );
-    fb.draw_text(
+    FB.lock().unwrap().draw_text(
         Point2 {
             x: (common::DISPLAYWIDTH as u32 - subtitle_rect.width) as f32 / 2.0,
             y: (62 - 20 + title_size + subtitle_size) as f32,
@@ -146,137 +148,8 @@ fn main() {
     );
 
     // Keys
-    let key_boxes = [
-        (
-            common::mxcfb_rect {
-                left: 722,
-                top: 1400,
-                width: 200,
-                height: 200 + 10 + 200,
-            },
-            *keys::KEY_LEFT,
-        ),
-        (
-            common::mxcfb_rect {
-                left: 722 + 200 + 10,
-                top: 1400,
-                width: 200,
-                height: 200,
-            },
-            *keys::KEY_UP,
-        ),
-        (
-            common::mxcfb_rect {
-                left: 722 + 200 + 10,
-                top: 1400 + 200 + 10,
-                width: 200,
-                height: 200,
-            },
-            *keys::KEY_DOWN,
-        ),
-        (
-            common::mxcfb_rect {
-                left: 722 + 200 + 10 + 200 + 10,
-                top: 1400,
-                width: 200,
-                height: 200 + 10 + 200,
-            },
-            *keys::KEY_RIGHT,
-        ),
-        (
-            common::mxcfb_rect {
-                left: 62,
-                top: 1400,
-                width: 300,
-                height: 200 + 10 + 200,
-            },
-            *keys::KEY_STRAFE,
-        ),
-        (
-            common::mxcfb_rect {
-                left: 62 + 300 + 10,
-                top: 1400,
-                width: 300,
-                height: 200 + 10 + 200,
-            },
-            *keys::KEY_FIRE,
-        ),
-        (
-            common::mxcfb_rect {
-                left: 62,
-                top: 1400 - 10 - 150 - 10 - 150,
-                width: 300,
-                height: 150,
-            },
-            keys::KEY_ESCAPE,
-        ),
-        (
-            common::mxcfb_rect {
-                left: 62,
-                top: 1400 - 150 - 10,
-                width: 300,
-                height: 150,
-            },
-            keys::KEY_ENTER,
-        ),
-        (
-            common::mxcfb_rect {
-                left: 62 + 300 + 10,
-                top: 1400 - 300 - 10 - 10,
-                width: 300,
-                height: 150 + 10 + 150,
-            },
-            *keys::KEY_USE,
-        ),
-    ];
 
-    let mut key_labels: fxhash::FxHashMap<u8, (f32, &'static str)> = Default::default();
-    key_labels.insert(*keys::KEY_LEFT, (100.0, "<"));
-    key_labels.insert(*keys::KEY_UP, (100.0, "^"));
-    key_labels.insert(*keys::KEY_DOWN, (100.0, "v"));
-    key_labels.insert(*keys::KEY_RIGHT, (100.0, ">"));
-    key_labels.insert(*keys::KEY_STRAFE, (25.0, "Strafe"));
-    key_labels.insert(*keys::KEY_FIRE, (25.0, "Fire"));
-    key_labels.insert(keys::KEY_ESCAPE, (25.0, "ESC"));
-    key_labels.insert(keys::KEY_ENTER, (25.0, "Enter"));
-    key_labels.insert(*keys::KEY_USE, (25.0, "Use"));
-
-    for (boxx, key) in &key_boxes {
-        fb.draw_rect(
-            Point2 {
-                x: boxx.left as i32,
-                y: boxx.top as i32,
-            },
-            Vector2 {
-                x: boxx.width,
-                y: boxx.height,
-            },
-            3,
-            common::color::BLACK,
-        );
-
-        if let Some((key_size, key_label)) = key_labels.get(key) {
-            let rect = fb.draw_text(
-                Point2 { x: 0f32, y: 500f32 },
-                key_label,
-                *key_size,
-                common::color::BLACK,
-                true,
-            );
-            fb.draw_text(
-                Point2 {
-                    x: (boxx.left as f32 + (boxx.width - rect.width) as f32 / 2.0),
-                    y: (boxx.top as f32 + (boxx.height + rect.height) as f32 / 2.0),
-                },
-                key_label,
-                *key_size,
-                common::color::BLACK,
-                false,
-            );
-        }
-    }
-
-    fb.full_refresh(
+    FB.lock().unwrap().full_refresh(
         common::waveform_mode::WAVEFORM_MODE_GC16,
         common::display_temp::TEMP_USE_MAX,
         common::dither_mode::EPDC_FLAG_USE_REMARKABLE_DITHER,
@@ -332,7 +205,7 @@ fn main() {
                     last_battery_percentage = percentage;
 
                     let text = format!("{}%    ", percentage); // Spaces to prevent residual text when text gets narrower
-                    let rect = fb.draw_text(
+                    let rect = FB.lock().unwrap().draw_text(
                         Point2 {
                             x: 10.0,
                             y: (common::DISPLAYHEIGHT - 10) as f32,
@@ -342,7 +215,7 @@ fn main() {
                         common::color::BLACK,
                         false,
                     );
-                    fb.partial_refresh(
+                    FB.lock().unwrap().partial_refresh(
                         &rect,
                         PartialRefreshMode::Async,
                         common::waveform_mode::WAVEFORM_MODE_GC16_FAST,
@@ -368,13 +241,13 @@ fn main() {
 
             let start = Instant::now();
             //fb.draw_image(&dithered_img, pos);
-            draw_image_mono(&mut fb, pos, &dithered_img);
+            draw_image_mono(&mut FB.lock().unwrap(), pos, &dithered_img);
 
             let waveform = match libremarkable::device::CURRENT_DEVICE.model {
                 libremarkable::device::Model::Gen1 => common::waveform_mode::WAVEFORM_MODE_GLR16,
                 libremarkable::device::Model::Gen2 => common::waveform_mode::WAVEFORM_MODE_DU,
             };
-            fb.partial_refresh(
+            FB.lock().unwrap().partial_refresh(
                 &common::mxcfb_rect {
                     left: pos.x as u32,
                     top: pos.y as u32,
@@ -399,35 +272,21 @@ fn main() {
     let (keydata_tx, keydata_rx) = std::sync::mpsc::channel::<KeyData>();
 
     std::thread::spawn(move || {
+        let mut layout_manager = layout::LayoutManager::new();
+
         let (input_tx, input_rx) = std::sync::mpsc::channel::<InputEvent>();
         EvDevContext::new(InputDevice::Multitouch, input_tx).start();
-        let mut fingers: fxhash::FxHashMap<i32, Finger> = Default::default();
-        let mut pressed_keys: fxhash::FxHashSet<u8> = Default::default();
 
         for event in input_rx {
-            match event {
-                InputEvent::MultitouchEvent { event } => match event {
-                    MultitouchEvent::Press { finger } => {
-                        fingers.insert(finger.tracking_id, finger);
-                        for keydata in find_updates(&fingers, &key_boxes, &mut pressed_keys) {
-                            keydata_tx.send(keydata).ok();
-                        }
+            for outcome in layout_manager.current_layout_mut().handle_input(event) {
+                match outcome {
+                    layout::InputOutcome::KeyData(keydata) => {
+                        keydata_tx.send(keydata).ok();
                     }
-                    MultitouchEvent::Move { finger } => {
-                        fingers.insert(finger.tracking_id, finger);
-                        for keydata in find_updates(&fingers, &key_boxes, &mut pressed_keys) {
-                            keydata_tx.send(keydata).ok();
-                        }
+                    layout::InputOutcome::SwitchLayout(new_layout_id) => {
+                        unimplemented!();
                     }
-                    MultitouchEvent::Release { finger } => {
-                        fingers.remove(&finger.tracking_id);
-                        for keydata in find_updates(&fingers, &key_boxes, &mut pressed_keys) {
-                            keydata_tx.send(keydata).ok();
-                        }
-                    }
-                    _ => unimplemented!(),
-                },
-                _ => unimplemented!(),
+                }
             }
         }
     });
@@ -436,44 +295,6 @@ fn main() {
         image: image_clone,
         keydata_receiver: keydata_rx,
     });
-}
-
-fn find_updates(
-    fingers: &fxhash::FxHashMap<i32, Finger>,
-    key_boxes: &[(common::mxcfb_rect, u8)],
-    pressed_keys: &mut fxhash::FxHashSet<u8>,
-) -> Vec<KeyData> {
-    let mut events = vec![];
-    let last_pressed_keys = pressed_keys.clone();
-
-    pressed_keys.clear();
-    for finger in fingers.values() {
-        for (boxx, key) in key_boxes {
-            if finger.pos.x as u32 >= boxx.left
-                && finger.pos.x as u32 <= boxx.left + boxx.width
-                && finger.pos.y as u32 >= boxx.top
-                && finger.pos.y as u32 <= boxx.top + boxx.height
-            {
-                pressed_keys.insert(*key);
-                break;
-            }
-        }
-    }
-
-    for key_up in last_pressed_keys.difference(&pressed_keys) {
-        events.push(KeyData {
-            pressed: false,
-            key: *key_up,
-        });
-    }
-    for key_down in pressed_keys.difference(&last_pressed_keys) {
-        events.push(KeyData {
-            pressed: true,
-            key: *key_down,
-        });
-    }
-
-    events
 }
 
 fn draw_image_mono(fb: &mut Framebuffer, pos: Point2<i32>, img: &libremarkable::image::GrayImage) {

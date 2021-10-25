@@ -1,5 +1,6 @@
-use crate::FB;
-use doomgeneric::input::{keys, KeyData};
+//! Mostly the ui-like stuff below the game
+
+use doomgeneric::input::KeyData;
 use libremarkable::cgmath::{Point2, Vector2};
 use libremarkable::framebuffer::common;
 use libremarkable::framebuffer::core::Framebuffer;
@@ -7,6 +8,10 @@ use libremarkable::framebuffer::{
     refresh::PartialRefreshMode, FramebufferDraw, FramebufferIO, FramebufferRefresh,
 };
 use libremarkable::input::{multitouch::Finger, multitouch::MultitouchEvent, InputEvent};
+
+mod confirmexit;
+mod controls;
+mod settings;
 
 pub enum InputOutcome {
     KeyData(KeyData),
@@ -49,9 +54,9 @@ impl LayoutManager {
         let mut layouts: fxhash::FxHashMap<LayoutId, Layout> = Default::default();
 
         // Create and add layouts
-        layouts.insert(LayoutId::Controls, create_layout_controls());
-        layouts.insert(LayoutId::Settings, create_layout_settings());
-        layouts.insert(LayoutId::ConfirmExit, create_layout_confirmexit());
+        layouts.insert(LayoutId::Controls, controls::create());
+        layouts.insert(LayoutId::Settings, settings::create());
+        layouts.insert(LayoutId::ConfirmExit, confirmexit::create());
 
         let instance = Self {
             layouts,
@@ -327,230 +332,4 @@ enum ButtonAction {
     DoomKey(u8),
     Function(Box<dyn Fn()>),
     SwitchLayout(LayoutId),
-}
-
-fn create_layout_controls() -> Layout {
-    let buttons = vec![
-        Element::Button {
-            rect: common::mxcfb_rect {
-                left: 722,
-                top: 1400,
-                width: 200,
-                height: 200 + 10 + 200,
-            },
-            label: "<",
-            label_size: 100.0,
-            action: ButtonAction::DoomKey(*keys::KEY_LEFT),
-        },
-        Element::Button {
-            rect: common::mxcfb_rect {
-                left: 722 + 200 + 10,
-                top: 1400,
-                width: 200,
-                height: 200,
-            },
-            label: "^",
-            label_size: 100.0,
-            action: ButtonAction::DoomKey(*keys::KEY_UP),
-        },
-        Element::Button {
-            rect: common::mxcfb_rect {
-                left: 722 + 200 + 10,
-                top: 1400 + 200 + 10,
-                width: 200,
-                height: 200,
-            },
-            label: "v",
-            label_size: 100.0,
-            action: ButtonAction::DoomKey(*keys::KEY_DOWN),
-        },
-        Element::Button {
-            rect: common::mxcfb_rect {
-                left: 722 + 200 + 10 + 200 + 10,
-                top: 1400,
-                width: 200,
-                height: 200 + 10 + 200,
-            },
-            label: ">",
-            label_size: 100.0,
-            action: ButtonAction::DoomKey(*keys::KEY_RIGHT),
-        },
-        Element::Button {
-            rect: common::mxcfb_rect {
-                left: 62,
-                top: 1400,
-                width: 300,
-                height: 200 + 10 + 200,
-            },
-            label: "Strafe",
-            label_size: 25.0,
-            action: ButtonAction::DoomKey(*keys::KEY_STRAFE),
-        },
-        Element::Button {
-            rect: common::mxcfb_rect {
-                left: 62 + 300 + 10,
-                top: 1400,
-                width: 300,
-                height: 200 + 10 + 200,
-            },
-            label: "Fire",
-            label_size: 25.0,
-            action: ButtonAction::DoomKey(*keys::KEY_FIRE),
-        },
-        Element::Button {
-            rect: common::mxcfb_rect {
-                left: 62,
-                top: 1400 - 10 - 150 - 10 - 150,
-                width: 300,
-                height: 150,
-            },
-            label: "ESC",
-            label_size: 25.0,
-            action: ButtonAction::DoomKey(keys::KEY_ESCAPE),
-        },
-        Element::Button {
-            rect: common::mxcfb_rect {
-                left: 62,
-                top: 1400 - 150 - 10,
-                width: 300,
-                height: 150,
-            },
-            label: "Enter",
-            label_size: 25.0,
-            action: ButtonAction::DoomKey(keys::KEY_ENTER),
-        },
-        Element::Button {
-            rect: common::mxcfb_rect {
-                left: 62 + 300 + 10,
-                top: 1400 - 300 - 10 - 10,
-                width: 300,
-                height: 150 + 10 + 150,
-            },
-            label: "Use",
-            label_size: 25.0,
-            action: ButtonAction::DoomKey(*keys::KEY_USE),
-        },
-        Element::Button {
-            rect: common::mxcfb_rect {
-                left: 1404 - 62 - 100,
-                top: 1400 - 300 - 10 - 10,
-                width: 100,
-                height: 50,
-            },
-            label: "Settings",
-            label_size: 25.0,
-            action: ButtonAction::SwitchLayout(LayoutId::Settings),
-        },
-    ];
-
-    Layout::new(buttons)
-}
-
-fn create_layout_settings() -> Layout {
-    let buttons = vec![
-        Element::Button {
-            rect: common::mxcfb_rect {
-                left: 1404 - 62 - 100,
-                top: 1400 - 300 - 10 - 10,
-                width: 100,
-                height: 50,
-            },
-            label: "Back",
-            label_size: 25.0,
-            action: ButtonAction::SwitchLayout(LayoutId::Controls),
-        },
-        Element::Text {
-            rect: common::mxcfb_rect {
-                left: 0,
-                top: 1400 - 300 - 10 - 10,
-                width: common::DISPLAYWIDTH as u32,
-                height: 100,
-            },
-            text: "Settings",
-            size: 100.0,
-        },
-        Element::Button {
-            rect: common::mxcfb_rect {
-                left: 62,
-                top: 1400 - 300 - 10 + 100 + 10 + (100 + 10) * 0,
-                width: 400,
-                height: 100,
-            },
-            label: "Full refresh",
-            label_size: 50.0,
-            action: ButtonAction::Function(Box::new(|| {
-                FB.lock().unwrap().full_refresh(
-                    common::waveform_mode::WAVEFORM_MODE_GC16,
-                    common::display_temp::TEMP_USE_MAX,
-                    common::dither_mode::EPDC_FLAG_USE_REMARKABLE_DITHER,
-                    0,
-                    true,
-                );
-            })),
-        },
-        Element::Button {
-            rect: common::mxcfb_rect {
-                left: 62,
-                top: 1400 - 300 - 10 + 100 + 10 + (100 + 10) * 1,
-                width: 400,
-                height: 100,
-            },
-            label: "Exit",
-            label_size: 50.0,
-            action: ButtonAction::SwitchLayout(LayoutId::ConfirmExit),
-        },
-    ];
-
-    Layout::new(buttons)
-}
-
-fn create_layout_confirmexit() -> Layout {
-    let buttons = vec![
-        Element::Text {
-            rect: common::mxcfb_rect {
-                left: 0,
-                top: 1400 - 300 - 10 - 10,
-                width: common::DISPLAYWIDTH as u32,
-                height: 100,
-            },
-            text: "Are you sure?",
-            size: 100.0,
-        },
-        Element::Text {
-            rect: common::mxcfb_rect {
-                left: 0,
-                top: 1400 - 300 - 10 - 10 + 100,
-                width: common::DISPLAYWIDTH as u32,
-                height: 100,
-            },
-            text: "Any unsaved progress will get lost!",
-            size: 50.0,
-        },
-        Element::Button {
-            rect: common::mxcfb_rect {
-                left: (common::DISPLAYWIDTH as u32 - (300 + 50 + 300)) / 2,
-                top: 1400 - 300 - 10 - 10 + 100 + 75 + 50,
-                width: 300,
-                height: 150,
-            },
-            label: "Exit",
-            label_size: 75.0,
-            action: ButtonAction::Function(Box::new(|| {
-                std::process::exit(0);
-            })),
-        },
-        Element::Button {
-            rect: common::mxcfb_rect {
-                left: (common::DISPLAYWIDTH as u32 - (300 + 50 + 300)) / 2 + 300 + 50,
-                top: 1400 - 300 - 10 - 10 + 100 + 75 + 50,
-                width: 300,
-                height: 150,
-            },
-            label: "Back",
-            label_size: 75.0,
-            action: ButtonAction::SwitchLayout(LayoutId::Settings),
-        },
-    ];
-
-    Layout::new(buttons)
 }

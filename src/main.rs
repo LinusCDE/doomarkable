@@ -29,7 +29,7 @@ pub static FB: Lazy<Mutex<Framebuffer>> =
     Lazy::new(|| Mutex::new(Framebuffer::from_path("/dev/fb0")));
 
 struct Game {
-    image: std::sync::Arc<std::sync::Mutex<(RgbImage, Instant)>>,
+    image: std::sync::Arc<std::sync::Mutex<RgbImage>>,
     keydata_receiver: std::sync::mpsc::Receiver<KeyData>,
 }
 
@@ -50,7 +50,7 @@ impl DoomGeneric for Game {
             rgb_img.put_pixel(x, y, pixel);
         }
 
-        *self.image.lock().unwrap() = (rgb_img, Instant::now());
+        *self.image.lock().unwrap() = rgb_img;
     }
     fn get_key(&mut self) -> Option<KeyData> {
         self.keydata_receiver.try_recv().ok()
@@ -164,7 +164,7 @@ fn main() {
         libremarkable::image::load_from_memory(include_bytes!("../res/default_screen.png"))
             .unwrap()
             .to_rgb();
-    let image = std::sync::Arc::new(std::sync::Mutex::new((default_image, Instant::now())));
+    let image = std::sync::Arc::new(std::sync::Mutex::new(default_image));
     let image_clone = image.clone();
     std::thread::spawn(move || {
         let mut last_frame_drawn = Instant::now() - Duration::from_millis(1000);
@@ -186,8 +186,6 @@ fn main() {
         let battery_indicator_update_interval = Duration::from_secs(30);
         let mut last_battery_indicator_update = Instant::now() - battery_indicator_update_interval;
         let mut last_battery_percentage = -99;
-
-        let mut last_timestamp = Instant::now(); // Used to prevent rendering the same image over and over
 
         loop {
             // Limit fps
@@ -234,12 +232,7 @@ fn main() {
                 }
             }
 
-            let (rgb_img, timestamp) = &image.lock().unwrap().clone();
-            if last_timestamp.duration_since(*timestamp) == Duration::from_nanos(0) {
-                last_frame_drawn = Instant::now();
-                continue;
-            }
-            last_timestamp = *timestamp;
+            let rgb_img = &image.lock().unwrap().clone();
 
             let start = Instant::now();
             // Downscale 2x (doomgeneric does a simple upscale anyways, so no data lost)

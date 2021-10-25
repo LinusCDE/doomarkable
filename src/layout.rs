@@ -18,18 +18,47 @@ pub struct LayoutManager {
     current_layout_id: LayoutId,
 }
 
+fn combined_rect(mut rect_iter: impl Iterator<Item = common::mxcfb_rect>) -> common::mxcfb_rect {
+    let mut left = 9999;
+    let mut top = 9999;
+    let mut bottom = 0;
+    let mut right = 0;
+
+    while let Some(rect) = rect_iter.next() {
+        left = left.min(rect.left);
+        top = top.min(rect.top);
+        right = right.max(rect.left + rect.width);
+        bottom = bottom.max(rect.top + rect.height);
+    }
+
+    assert!(left < right);
+    assert!(top < bottom);
+    assert!(right <= common::DISPLAYWIDTH as u32);
+    assert!(bottom <= common::DISPLAYHEIGHT as u32);
+
+    common::mxcfb_rect {
+        left,
+        top,
+        width: right - left,
+        height: bottom - top,
+    }
+}
+
 impl LayoutManager {
-    pub fn new() -> Self {
+    pub fn new(fb: &mut Framebuffer) -> Self {
         let mut layouts: fxhash::FxHashMap<LayoutId, Layout> = Default::default();
 
+        // Create and add layouts
         layouts.insert(LayoutId::Controls, create_layout_controls());
+        layouts.insert(LayoutId::Settings, create_layout_settings());
+        layouts.insert(LayoutId::ConfirmExit, create_layout_confirmexit());
 
         let instance = Self {
             layouts,
             current_layout_id: Default::default(),
         };
-        instance.current_layout().render(&mut FB.lock().unwrap());
-        instance.current_layout().refresh(&mut FB.lock().unwrap());
+        instance.current_layout().render(fb);
+        instance.refresh(&instance.current_layout().get_area(), fb);
 
         instance
     }
@@ -42,27 +71,37 @@ impl LayoutManager {
         self.layouts.get_mut(&self.current_layout_id).unwrap()
     }
 
-    pub fn switch_layout(&mut self, new_layout: LayoutId) {
-        if new_layout == self.current_layout_id {
-            return;
-        }
-        let mut fb = FB.lock().unwrap();
-
-        self.current_layout().clear(&mut fb);
-        self.current_layout().refresh(&mut fb);
+    pub fn switch_layout(&mut self, new_layout: LayoutId, fb: &mut Framebuffer) {
+        self.current_layout().clear(fb);
+        let old_area = self.current_layout().get_area();
 
         self.current_layout_id = new_layout;
 
-        self.current_layout().clear(&mut fb);
-        self.current_layout().render(&mut fb);
-        self.current_layout().refresh(&mut fb);
+        self.current_layout().clear(fb);
+        self.current_layout().render(fb);
+        let new_ara = self.current_layout().get_area();
+        self.refresh(&combined_rect([old_area, new_ara].iter().map(|r| *r)), fb);
         self.current_layout_id = new_layout;
+    }
+
+    fn refresh(&self, area: &common::mxcfb_rect, fb: &mut Framebuffer) {
+        fb.partial_refresh(
+            area,
+            PartialRefreshMode::Wait,
+            common::waveform_mode::WAVEFORM_MODE_GC16_FAST,
+            common::display_temp::TEMP_USE_AMBIENT,
+            common::dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
+            0,
+            false,
+        );
     }
 }
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum LayoutId {
     Controls,
+    Settings,
+    ConfirmExit,
 }
 
 impl Default for LayoutId {
@@ -72,7 +111,7 @@ impl Default for LayoutId {
 }
 
 pub struct Layout {
-    buttons: Vec<Button>,
+    elements: Vec<Element>,
 
     // Input tracking
     fingers: fxhash::FxHashMap<i32, Finger>,
@@ -80,83 +119,83 @@ pub struct Layout {
 }
 
 impl Layout {
-    fn new(buttons: Vec<Button>) -> Self {
+    fn new(elements: Vec<Element>) -> Self {
         Self {
-            buttons,
+            elements,
             fingers: Default::default(),
             pressed_indices: Default::default(),
         }
     }
 
     pub fn get_area(&self) -> common::mxcfb_rect {
-        let mut left = 9999;
-        let mut top = 9999;
-        let mut bottom = 0;
-        let mut right = 0;
-
-        for button in &self.buttons {
-            left = left.min(button.rect.left);
-            top = top.min(button.rect.top);
-            right = right.max(button.rect.left + button.rect.width);
-            bottom = bottom.max(button.rect.top + button.rect.height);
-        }
-
-        assert!(left < right);
-        assert!(top < bottom);
-
-        common::mxcfb_rect {
-            left,
-            top,
-            width: right - left,
-            height: bottom - top,
-        }
+        combined_rect(self.elements.iter().map(|el| *el.rect()))
     }
 
     pub fn render(&self, fb: &mut Framebuffer) {
-        for button in &self.buttons {
-            fb.draw_rect(
-                Point2 {
-                    x: button.rect.left as i32,
-                    y: button.rect.top as i32,
-                },
-                Vector2 {
-                    x: button.rect.width,
-                    y: button.rect.height,
-                },
-                3,
-                common::color::BLACK,
-            );
+        for element in &self.elements {
+            match element {
+                Element::Button {
+                    label,
+                    label_size,
+                    rect,
+                    ..
+                } => {
+                    fb.draw_rect(
+                        Point2 {
+                            x: rect.left as i32 + 2,
+                            y: rect.top as i32 + 2,
+                        },
+                        Vector2 {
+                            x: rect.width - 4,
+                            y: rect.height - 4,
+                        },
+                        3,
+                        common::color::BLACK,
+                    );
 
-            let rect = fb.draw_text(
-                Point2 { x: 0f32, y: 500f32 },
-                &button.label,
-                button.label_size,
-                common::color::BLACK,
-                true,
-            );
-            fb.draw_text(
-                Point2 {
-                    x: (button.rect.left as f32 + (button.rect.width - rect.width) as f32 / 2.0),
-                    y: (button.rect.top as f32 + (button.rect.height + rect.height) as f32 / 2.0),
-                },
-                &button.label,
-                button.label_size,
-                common::color::BLACK,
-                false,
-            );
+                    let text_rect = fb.draw_text(
+                        Point2 { x: 0f32, y: 500f32 },
+                        label,
+                        *label_size,
+                        common::color::BLACK,
+                        true,
+                    );
+
+                    fb.draw_text(
+                        Point2 {
+                            x: (rect.left as f32 + (rect.width - text_rect.width) as f32 / 2.0),
+                            y: (rect.top as f32 + (rect.height - text_rect.height) as f32 / 2.0)
+                                + text_rect.height as f32,
+                        },
+                        label,
+                        *label_size,
+                        common::color::BLACK,
+                        false,
+                    );
+                }
+                Element::Text { text, size, rect } => {
+                    let text_rect = fb.draw_text(
+                        Point2 { x: 0f32, y: 500f32 },
+                        text,
+                        *size,
+                        common::color::BLACK,
+                        true,
+                    );
+
+                    fb.draw_text(
+                        Point2 {
+                            x: (rect.left as f32 + (rect.width - text_rect.width) as f32 / 2.0),
+                            y: (rect.top as f32 + (rect.height - text_rect.height) as f32 / 2.0)
+                                + text_rect.height as f32,
+                        },
+                        text,
+                        *size,
+                        common::color::BLACK,
+                        false,
+                    );
+                }
+            }
         }
-    }
-
-    pub fn refresh(&self, fb: &mut Framebuffer) {
-        fb.partial_refresh(
-            &self.get_area(),
-            PartialRefreshMode::Wait,
-            common::waveform_mode::WAVEFORM_MODE_GC16_FAST,
-            common::display_temp::TEMP_USE_MAX,
-            common::dither_mode::EPDC_FLAG_USE_REMARKABLE_DITHER,
-            0,
-            false,
-        );
     }
 
     pub fn clear(&self, fb: &mut Framebuffer) {
@@ -169,37 +208,52 @@ impl Layout {
     }
 
     pub fn handle_input(&mut self, event: InputEvent) -> Vec<InputOutcome> {
-        match event {
+        let mut outcomes = match event {
             InputEvent::MultitouchEvent { event } => match event {
                 MultitouchEvent::Press { finger } => {
                     self.fingers.insert(finger.tracking_id, finger);
-                    self.find_updates()
+                    self.process_fingers()
                 }
                 MultitouchEvent::Move { finger } => {
                     self.fingers.insert(finger.tracking_id, finger);
-                    self.find_updates()
+                    self.process_fingers()
                 }
                 MultitouchEvent::Release { finger } => {
                     self.fingers.remove(&finger.tracking_id);
-                    self.find_updates()
+                    self.process_fingers()
                 }
                 _ => unimplemented!(),
             },
             _ => unimplemented!(),
+        };
+
+        // Fake all fingers released before switching a layout to prevent stuck keys
+        let mut i = 0;
+        while i < outcomes.len() {
+            if let InputOutcome::SwitchLayout(_) = &outcomes[i] {
+                self.fingers.clear();
+                for outcome in self.process_fingers() {
+                    outcomes.insert(i, outcome);
+                    i += 1;
+                }
+            }
+            i += 1;
         }
+
+        outcomes
     }
 
-    fn find_updates(&mut self) -> Vec<InputOutcome> {
-        let mut events = vec![];
+    fn process_fingers(&mut self) -> Vec<InputOutcome> {
+        let mut outcomes = vec![];
         let last_pressed_indices = self.pressed_indices.clone();
 
         self.pressed_indices.clear();
         for finger in self.fingers.values() {
-            for (i, button) in self.buttons.iter().enumerate() {
-                if finger.pos.x as u32 >= button.rect.left
-                    && finger.pos.x as u32 <= button.rect.left + button.rect.width
-                    && finger.pos.y as u32 >= button.rect.top
-                    && finger.pos.y as u32 <= button.rect.top + button.rect.height
+            for (i, element) in self.elements.iter().enumerate() {
+                if finger.pos.x as u32 >= element.rect().left
+                    && finger.pos.x as u32 <= element.rect().left + element.rect().width
+                    && finger.pos.y as u32 >= element.rect().top
+                    && finger.pos.y as u32 <= element.rect().top + element.rect().height
                 {
                     self.pressed_indices.insert(i);
                     break;
@@ -208,35 +262,65 @@ impl Layout {
         }
 
         for key_up_index in last_pressed_indices.difference(&self.pressed_indices) {
-            let button = &self.buttons[*key_up_index];
-            match button.action {
-                ButtonAction::DoomKey(key) => {
-                    #[rustfmt::skip]
-                    events.push(InputOutcome::KeyData(KeyData { key, pressed: false }));
+            if let Element::Button { action, .. } = &self.elements[*key_up_index] {
+                match action {
+                    ButtonAction::DoomKey(key) => {
+                        outcomes.push(InputOutcome::KeyData(KeyData {
+                            key: *key,
+                            pressed: false,
+                        }));
+                    }
+                    ButtonAction::Function(func) => {
+                        func();
+                    }
+                    ButtonAction::SwitchLayout(layout_id) => {
+                        outcomes.push(InputOutcome::SwitchLayout(*layout_id));
+                    }
                 }
-                _ => unimplemented!(),
             }
         }
 
         for key_down_index in self.pressed_indices.difference(&last_pressed_indices) {
-            let button = &self.buttons[*key_down_index];
-            match button.action {
-                ButtonAction::DoomKey(key) => {
-                    events.push(InputOutcome::KeyData(KeyData { key, pressed: true }));
+            if let Element::Button { action, .. } = &self.elements[*key_down_index] {
+                match action {
+                    ButtonAction::DoomKey(key) => {
+                        outcomes.push(InputOutcome::KeyData(KeyData {
+                            key: *key,
+                            pressed: true,
+                        }));
+                    }
+
+                    ButtonAction::Function(_) => {}
+                    ButtonAction::SwitchLayout(_) => {}
                 }
-                _ => unimplemented!(),
             }
         }
 
-        events
+        outcomes
     }
 }
 
-struct Button {
-    rect: common::mxcfb_rect,
-    label: &'static str,
-    label_size: f32,
-    action: ButtonAction,
+enum Element {
+    Button {
+        rect: common::mxcfb_rect,
+        label: &'static str,
+        label_size: f32,
+        action: ButtonAction,
+    },
+    Text {
+        rect: common::mxcfb_rect,
+        text: &'static str,
+        size: f32,
+    },
+}
+
+impl Element {
+    fn rect(&self) -> &common::mxcfb_rect {
+        match self {
+            Element::Button { rect, .. } => rect,
+            Element::Text { rect, .. } => rect,
+        }
+    }
 }
 
 enum ButtonAction {
@@ -247,7 +331,7 @@ enum ButtonAction {
 
 fn create_layout_controls() -> Layout {
     let buttons = vec![
-        Button {
+        Element::Button {
             rect: common::mxcfb_rect {
                 left: 722,
                 top: 1400,
@@ -258,7 +342,7 @@ fn create_layout_controls() -> Layout {
             label_size: 100.0,
             action: ButtonAction::DoomKey(*keys::KEY_LEFT),
         },
-        Button {
+        Element::Button {
             rect: common::mxcfb_rect {
                 left: 722 + 200 + 10,
                 top: 1400,
@@ -269,7 +353,7 @@ fn create_layout_controls() -> Layout {
             label_size: 100.0,
             action: ButtonAction::DoomKey(*keys::KEY_UP),
         },
-        Button {
+        Element::Button {
             rect: common::mxcfb_rect {
                 left: 722 + 200 + 10,
                 top: 1400 + 200 + 10,
@@ -280,7 +364,7 @@ fn create_layout_controls() -> Layout {
             label_size: 100.0,
             action: ButtonAction::DoomKey(*keys::KEY_DOWN),
         },
-        Button {
+        Element::Button {
             rect: common::mxcfb_rect {
                 left: 722 + 200 + 10 + 200 + 10,
                 top: 1400,
@@ -291,7 +375,7 @@ fn create_layout_controls() -> Layout {
             label_size: 100.0,
             action: ButtonAction::DoomKey(*keys::KEY_RIGHT),
         },
-        Button {
+        Element::Button {
             rect: common::mxcfb_rect {
                 left: 62,
                 top: 1400,
@@ -302,7 +386,7 @@ fn create_layout_controls() -> Layout {
             label_size: 25.0,
             action: ButtonAction::DoomKey(*keys::KEY_STRAFE),
         },
-        Button {
+        Element::Button {
             rect: common::mxcfb_rect {
                 left: 62 + 300 + 10,
                 top: 1400,
@@ -313,7 +397,7 @@ fn create_layout_controls() -> Layout {
             label_size: 25.0,
             action: ButtonAction::DoomKey(*keys::KEY_FIRE),
         },
-        Button {
+        Element::Button {
             rect: common::mxcfb_rect {
                 left: 62,
                 top: 1400 - 10 - 150 - 10 - 150,
@@ -324,7 +408,7 @@ fn create_layout_controls() -> Layout {
             label_size: 25.0,
             action: ButtonAction::DoomKey(keys::KEY_ESCAPE),
         },
-        Button {
+        Element::Button {
             rect: common::mxcfb_rect {
                 left: 62,
                 top: 1400 - 150 - 10,
@@ -335,7 +419,7 @@ fn create_layout_controls() -> Layout {
             label_size: 25.0,
             action: ButtonAction::DoomKey(keys::KEY_ENTER),
         },
-        Button {
+        Element::Button {
             rect: common::mxcfb_rect {
                 left: 62 + 300 + 10,
                 top: 1400 - 300 - 10 - 10,
@@ -345,6 +429,126 @@ fn create_layout_controls() -> Layout {
             label: "Use",
             label_size: 25.0,
             action: ButtonAction::DoomKey(*keys::KEY_USE),
+        },
+        Element::Button {
+            rect: common::mxcfb_rect {
+                left: 1404 - 62 - 100,
+                top: 1400 - 300 - 10 - 10,
+                width: 100,
+                height: 50,
+            },
+            label: "Settings",
+            label_size: 25.0,
+            action: ButtonAction::SwitchLayout(LayoutId::Settings),
+        },
+    ];
+
+    Layout::new(buttons)
+}
+
+fn create_layout_settings() -> Layout {
+    let buttons = vec![
+        Element::Button {
+            rect: common::mxcfb_rect {
+                left: 1404 - 62 - 100,
+                top: 1400 - 300 - 10 - 10,
+                width: 100,
+                height: 50,
+            },
+            label: "Back",
+            label_size: 25.0,
+            action: ButtonAction::SwitchLayout(LayoutId::Controls),
+        },
+        Element::Text {
+            rect: common::mxcfb_rect {
+                left: 0,
+                top: 1400 - 300 - 10 - 10,
+                width: common::DISPLAYWIDTH as u32,
+                height: 100,
+            },
+            text: "Settings",
+            size: 100.0,
+        },
+        Element::Button {
+            rect: common::mxcfb_rect {
+                left: 62,
+                top: 1400 - 300 - 10 + 100 + 10 + (100 + 10) * 0,
+                width: 400,
+                height: 100,
+            },
+            label: "Full refresh",
+            label_size: 50.0,
+            action: ButtonAction::Function(Box::new(|| {
+                FB.lock().unwrap().full_refresh(
+                    common::waveform_mode::WAVEFORM_MODE_GC16,
+                    common::display_temp::TEMP_USE_MAX,
+                    common::dither_mode::EPDC_FLAG_USE_REMARKABLE_DITHER,
+                    0,
+                    true,
+                );
+            })),
+        },
+        Element::Button {
+            rect: common::mxcfb_rect {
+                left: 62,
+                top: 1400 - 300 - 10 + 100 + 10 + (100 + 10) * 1,
+                width: 400,
+                height: 100,
+            },
+            label: "Exit",
+            label_size: 50.0,
+            action: ButtonAction::SwitchLayout(LayoutId::ConfirmExit),
+        },
+    ];
+
+    Layout::new(buttons)
+}
+
+fn create_layout_confirmexit() -> Layout {
+    let buttons = vec![
+        Element::Text {
+            rect: common::mxcfb_rect {
+                left: 0,
+                top: 1400 - 300 - 10 - 10,
+                width: common::DISPLAYWIDTH as u32,
+                height: 100,
+            },
+            text: "Are you sure?",
+            size: 100.0,
+        },
+        Element::Text {
+            rect: common::mxcfb_rect {
+                left: 0,
+                top: 1400 - 300 - 10 - 10 + 100,
+                width: common::DISPLAYWIDTH as u32,
+                height: 100,
+            },
+            text: "Any unsaved progress will get lost!",
+            size: 50.0,
+        },
+        Element::Button {
+            rect: common::mxcfb_rect {
+                left: (common::DISPLAYWIDTH as u32 - (300 + 50 + 300)) / 2,
+                top: 1400 - 300 - 10 - 10 + 100 + 75 + 50,
+                width: 300,
+                height: 150,
+            },
+            label: "Exit",
+            label_size: 75.0,
+            action: ButtonAction::Function(Box::new(|| {
+                std::process::exit(0);
+            })),
+        },
+        Element::Button {
+            rect: common::mxcfb_rect {
+                left: (common::DISPLAYWIDTH as u32 - (300 + 50 + 300)) / 2 + 300 + 50,
+                top: 1400 - 300 - 10 - 10 + 100 + 75 + 50,
+                width: 300,
+                height: 150,
+            },
+            label: "Back",
+            label_size: 75.0,
+            action: ButtonAction::SwitchLayout(LayoutId::Settings),
         },
     ];
 

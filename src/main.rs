@@ -272,7 +272,7 @@ fn main() {
     let (keydata_tx, keydata_rx) = std::sync::mpsc::channel::<KeyData>();
 
     std::thread::spawn(move || {
-        let mut layout_manager = layout::LayoutManager::new();
+        let mut layout_manager = layout::LayoutManager::new(&mut FB.lock().unwrap());
 
         let (input_tx, input_rx) = std::sync::mpsc::channel::<InputEvent>();
         EvDevContext::new(InputDevice::Multitouch, input_tx).start();
@@ -284,7 +284,7 @@ fn main() {
                         keydata_tx.send(keydata).ok();
                     }
                     layout::InputOutcome::SwitchLayout(new_layout_id) => {
-                        unimplemented!();
+                        layout_manager.switch_layout(new_layout_id, &mut FB.lock().unwrap())
                     }
                 }
             }

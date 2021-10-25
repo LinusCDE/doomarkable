@@ -35,7 +35,7 @@ The game currently runs fine but there are still some things to do:
 - [ ] Adjusting gamma to make dithered visuals clearer for certain rooms
 - [x] Add an battery indicator (this sucks a lot of juice ..ahem.. blood)
 - [ ] Package it up for [toltec](https://github.com/toltec-dev/toltec) and inclusion in [launchers](https://github.com/reHackable/awesome-reMarkable#launchers)
-- [ ] Consider a smaller size for the rM 2, so the eink software driver doesn't die trying to update that much dots
+- [ ] Consider a smaller size for the rM 2, so the eink software driver doesn't die trying to update that many dots
 
 ## How to run
 

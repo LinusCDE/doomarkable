@@ -5,7 +5,6 @@ rustflags = [
   "-C", "link-arg=-mfpu=neon",
   "-C", "link-arg=-mfloat-abi=hard",
   "-C", "link-arg=-mcpu=cortex-a9",
-  "-C", "link-arg=--sysroot=/usr/local/oecore-x86_64/sysroots/cortexa9hf-neon-oe-linux-gnueabi",
   "-C", "target-cpu=cortex-a9",
   "-C", "target-feature=+v7,+neon,+vfp3,+aclass,+a9,+thumb-mode",
 ]

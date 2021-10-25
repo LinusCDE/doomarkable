@@ -30,6 +30,9 @@ fn wrap(m: u32, n: u32) -> u32 {
 
 #[inline]
 fn calc_dithered_pixels_4x4(old_pixel: &Luma<u8>, x: u32, y: u32) -> u16 {
+    // Increase brightness 1.5x
+    let ref old_pixel = Luma([(((old_pixel[0] as f32 / 255.0) * 1.5) * 255.0) as u8]);
+
     let mut res = 0u16;
     let mut i = 0;
     for y_offset in 0..4 {

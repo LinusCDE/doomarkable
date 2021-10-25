@@ -56,6 +56,12 @@ impl CachedDither2XTo4X {
             input_image.height(),
             |x, y| {
                 let pixel = input_image.get_pixel(x, y);
+                /*let r = pixel.data[0] as f32 / 255.0 * 1.5;
+                let g = pixel.data[1] as f32 / 255.0 * 1.5;
+                let b = pixel.data[2] as f32 / 255.0 * 1.5;
+                let gray = (1f32.min((r + g + b) / 3.0) * 255f32) as u8;
+                Luma([gray])*/
+
                 let r = pixel.data[0] as u16;
                 let g = pixel.data[1] as u16;
                 let b = pixel.data[2] as u16;

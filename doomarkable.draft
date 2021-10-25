@@ -1,0 +1,4 @@
+name=DOOMarkable
+desc=DOOM on the reMarkable
+call=/opt/bin/doomarkable
+imgFile=doomarkable

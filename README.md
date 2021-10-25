@@ -30,9 +30,9 @@ I personally find this worth the extra latency when playing.
 
 The game currently runs fine but there are still some things to do:
 
-- [ ] Making it easy to get the game resources
-- [ ] Properly exit the game without requiring killing the process (semi done)
-- [ ] Adjusting gamma to make dithered visuals clearer for certain rooms
+- [ ] Making it easy to get the game resources **(semi done)**
+- [ ] Properly exit the game without requiring killing the process **(semi done)**
+- [ ] Adjusting gamma to make dithered visuals clearer for certain rooms **(semi done)**
 - [x] Add an battery indicator (this sucks a lot of juice ..ahem.. blood)
 - [ ] Package it up for [toltec](https://github.com/toltec-dev/toltec) and inclusion in [launchers](https://github.com/reHackable/awesome-reMarkable#launchers)
 - [ ] Consider a smaller size for the rM 2, so the eink software driver doesn't die trying to update that many dots

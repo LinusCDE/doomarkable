@@ -66,6 +66,9 @@ fn main() {
     }
     env_logger::init();
 
+    // Ensure .savegame and wad file are always relative to the home directory
+    std::env::set_current_dir("/home/root").unwrap();
+
     let mut preparing_text_rect = FB.lock().unwrap().draw_text(
         Point2 {
             x: 600f32,

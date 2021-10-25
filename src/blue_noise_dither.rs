@@ -48,7 +48,20 @@ impl CachedDither2XTo4X {
 
         // RgbImage == ImageBuffer<Rgb<u8>, Vec<u8>>
         let start = std::time::Instant::now();
-        let old_img = libremarkable::image::imageops::grayscale(input_image);
+        // Grayscale image
+        //let old_img = libremarkable::image::imageops::grayscale(input_image);
+        // No need for srgb correction.
+        let old_img = libremarkable::image::GrayImage::from_fn(
+            input_image.width(),
+            input_image.height(),
+            |x, y| {
+                let pixel = input_image.get_pixel(x, y);
+                let r = pixel.data[0] as u16;
+                let g = pixel.data[1] as u16;
+                let b = pixel.data[2] as u16;
+                Luma([((r + g + b) / 3) as u8])
+            },
+        );
         debug!("Dither: Grayscaling took {:?}", start.elapsed());
 
         let (width, height) = old_img.dimensions();

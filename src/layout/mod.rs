@@ -11,6 +11,7 @@ use libremarkable::input::{multitouch::Finger, multitouch::MultitouchEvent, Inpu
 
 mod confirmexit;
 mod controls;
+mod keyboard;
 mod settings;
 
 pub enum InputOutcome {
@@ -57,6 +58,7 @@ impl LayoutManager {
         layouts.insert(LayoutId::Controls, controls::create());
         layouts.insert(LayoutId::Settings, settings::create());
         layouts.insert(LayoutId::ConfirmExit, confirmexit::create());
+        layouts.insert(LayoutId::Keyboard, keyboard::create());
 
         let instance = Self {
             layouts,
@@ -107,6 +109,7 @@ pub enum LayoutId {
     Controls,
     Settings,
     ConfirmExit,
+    Keyboard,
 }
 
 impl Default for LayoutId {

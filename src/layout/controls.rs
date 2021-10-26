@@ -116,6 +116,17 @@ pub fn create() -> Layout {
         },
         Element::Button {
             rect: common::mxcfb_rect {
+                left: 1404 - 62 - 100,
+                top: 1400 - 300 - 10 - 10 + 50 + 5,
+                width: 100,
+                height: 50,
+            },
+            label: "Keyboard",
+            label_size: 25.0,
+            action: ButtonAction::SwitchLayout(LayoutId::Keyboard),
+        },
+        Element::Button {
+            rect: common::mxcfb_rect {
                 left: 722 + (75 - 4) * 0,
                 top: 1400 - 300 - 10 - 10,
                 width: 75,

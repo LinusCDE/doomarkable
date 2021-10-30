@@ -2,6 +2,8 @@
 
 [![rm1](https://img.shields.io/badge/rM1-supported-green)](https://remarkable.com/store/remarkable)
 [![rm2](https://img.shields.io/badge/rM2-not_recommended-yellow)](https://remarkable.com/store/remarkable-2)
+[![opkg](https://img.shields.io/badge/OPKG-doomarkable-blue)](https://github.com/toltec-dev/toltec)
+[![launchers](https://img.shields.io/badge/Launchers-supported-green)](https://github.com/reHackable/awesome-reMarkable#launchers)
 
 This is a doom port intended for the reMarkable 1.
 

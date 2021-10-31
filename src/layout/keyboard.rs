@@ -34,11 +34,11 @@ fn create_keyboard_definitions() -> Vec<Vec<KeyDefinition>> {
             KeyDefinition::new(61.0, "0", '0'),
             KeyDefinition::new(61.0, "-", '-'),
             KeyDefinition::new(61.0, "+", '+'),
-            KeyDefinition::new(121.0, "Backspace", '\x7f'),
+            KeyDefinition::new(120.0, "Backspace", '\x7f'),
         ],
         // Row 2
         vec![
-            KeyDefinition::new(91.0, "Tab", '\x09'),
+            KeyDefinition::new(90.0, "Tab", '\x09'),
             KeyDefinition::new(61.0, "q", 'q'),
             KeyDefinition::new(61.0, "w", 'w'),
             KeyDefinition::new(61.0, "e", 'e'),
@@ -82,18 +82,18 @@ fn create_keyboard_definitions() -> Vec<Vec<KeyDefinition>> {
             KeyDefinition::new(61.0, "<", '<'),
             KeyDefinition::new(61.0, ">", '>'),
             KeyDefinition::new(61.0, "?", '?'),
-            KeyDefinition::new(166.0, "Shift", 0xb6 as char), // Shift in??
+            KeyDefinition::new(167.0, "Shift", 0xb6 as char), // Shift in??
         ],
         // Row 5
         vec![
-            KeyDefinition::new(91.0, "Ctrl", 0x9d as char),
+            KeyDefinition::new(92.0, "Ctrl", 0x9d as char),
             KeyDefinition::new(61.0, /*"Super"*/ "", '\0'),
-            KeyDefinition::new(91.0, "Alt", 0xb8 as char),
-            KeyDefinition::new(361.0, "Space", ' '),
-            KeyDefinition::new(91.0, "Alt", 0xb8 as char),
+            KeyDefinition::new(92.0, "Alt", 0xb8 as char),
+            KeyDefinition::new(362.0, "Space", ' '),
+            KeyDefinition::new(92.0, "Alt", 0xb8 as char),
             KeyDefinition::new(61.0, "" /*"Super"*/, '\0'),
             KeyDefinition::new(61.0, "" /*"Menu"*/, '\0'),
-            KeyDefinition::new(91.0, "Ctrl", 0x9d as char),
+            KeyDefinition::new(92.0, "Ctrl", 0x9d as char),
         ],
     ]
 }
@@ -121,6 +121,9 @@ pub fn create() -> Layout {
     let width_factor = (common::DISPLAYWIDTH as f32 - (62 * 2) as f32) / width_weight_sum;
     //let height_factor = ((common::DISPLAYHEIGHT as u32 - 62) as f32 - y) / height_weight_sum;
     let height_factor = width_factor; // Square keys
+
+    //let text: Vec<f32> = keys.iter().map(|k| k.iter().map(|k| k.weighted_width).sum()).collect();
+    //info!("{:?}", text);
 
     for row in keys {
         let mut x = 62f32;

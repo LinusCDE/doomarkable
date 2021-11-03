@@ -99,14 +99,14 @@ fn main() {
     let start = Instant::now();
     let dither_cache_compressed = include_bytes!(env!("OUT_DIR_DITHERCACHE_FILE"));
     let mut dither_cache_raw = Cursor::new(Vec::with_capacity(
-        blue_noise_dither::CachedDither2XTo4X::calc_dither_cache_len(
+        blue_noise_dither::CachedDither4X::calc_dither_cache_len(
             game::DOOMGENERIC_RESX as u32 / 2,
             game::DOOMGENERIC_RESY as u32 / 2,
         ) * 2,
     ));
     zstd::stream::copy_decode(Cursor::new(dither_cache_compressed), &mut dither_cache_raw).unwrap();
     let dither_cache_raw = dither_cache_raw.into_inner();
-    let mut ditherer = blue_noise_dither::CachedDither2XTo4X::new(dither_cache_raw);
+    let mut ditherer = blue_noise_dither::CachedDither4X::new(dither_cache_raw);
     info!("Loaded dither cache in {:?}", start.elapsed());
 
     // Title

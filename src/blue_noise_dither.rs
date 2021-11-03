@@ -1,10 +1,10 @@
 use libremarkable::image::{DynamicImage, GenericImageView, GrayImage, Luma};
 
-pub struct CachedDither2XTo4X {
+pub struct CachedDither4X {
     dither_cache: Vec<u16>,
 }
 
-impl CachedDither2XTo4X {
+impl CachedDither4X {
     fn convert_vec_u8_to_vec_u16(vec: Vec<u8>) -> Vec<u16> {
         assert!(vec.len() % 2 == 0);
         vec.chunks_exact(2)

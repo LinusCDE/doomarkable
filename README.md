@@ -43,7 +43,7 @@ The game currently runs fine but there are still some things to do:
 
 - Download the latest binary from the [release page](https://github.com/LinusCDE/doomarkable/releases) (the file without any extension)
 - Copy the file to e.g. `/home/root` on your reMarkable (e.g. using FileZilla or WinSCP)
-- Find an appropriate IWAD file (game resources) and put it in the same directory ([more details](https://github.com/LinusCDE/piston-doom#get-an-iwad-file))
+- Find an appropriate IWAD file (game resources) and put it in `/home/root` ([more details](https://github.com/LinusCDE/piston-doom#get-an-iwad-file))
 - Log into the device using ssh (e.g. with Putty) and go into your chosen directory
 - Make the binary executable by running `chmod +x doomarkable`
 - Ensure no other UI is running (e.g. stop the default UI with `systemctl stop xochitl` and start it later using start instead of stop)

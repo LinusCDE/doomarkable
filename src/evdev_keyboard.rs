@@ -203,10 +203,10 @@ fn map_evdev_key_to_doom(key: Key) -> Option<u8> {
         Key::KEY_LEFT => 0xac,
         Key::KEY_UP => 0xad,
         Key::KEY_DOWN => 0xaf,
-        Key::KEY_DOT => 0xa0,   // Strafe left
-        Key::KEY_COMMA => 0xa1, // Strafe right
-        // USE
-        // FIRE
+        Key::KEY_DOT => 0xa0,      // Strafe left
+        Key::KEY_COMMA => 0xa1,    // Strafe right
+        Key::KEY_SPACE => 0xa2,    // Use
+        Key::KEY_LEFTCTRL => 0xa3, // Fire... i think
         Key::KEY_ESC => 27,
         Key::KEY_ENTER => 13,
         Key::KEY_TAB => 9,
@@ -231,7 +231,6 @@ fn map_evdev_key_to_doom(key: Key) -> Option<u8> {
 
         Key::KEY_LEFTSHIFT => 0x80 + 0x36, // Does this have a different key for doom?
         Key::KEY_RIGHTSHIFT => 0x80 + 0x36,
-        Key::KEY_LEFTCTRL => 0x80 + 0x1d, // Does this have a different key for doom?
         Key::KEY_RIGHTCTRL => 0x80 + 0x1d,
         Key::KEY_LEFTALT => 0x80 + 0x38u8,
         Key::KEY_RIGHTALT => 0x80 + 0x38,

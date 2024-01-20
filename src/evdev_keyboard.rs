@@ -27,7 +27,7 @@ fn scan_for_existing_keyboards(keydata_tx: &Sender<KeyData>) {
         {
             continue; // Skip directories or known input devices (gpio, mt, wacom)
         }
-        info!("Existing evdev device detected: {path:?}");
+        debug!("Existing evdev device detected: {path:?}");
         spawn_evdev_keyboard(path, keydata_tx.clone());
     }
 }
@@ -74,7 +74,7 @@ fn spawn_keyboard_watcher(keydata_tx: Sender<KeyData>) {
                     continue; // Ignore things like "touchscreen0", "mouse0", etc.
                 }
                 let path = Path::new(DEV_INPUT_DIR).join(filename);
-                info!("New evdev device detected: {path:?}");
+                debug!("New evdev device detected: {path:?}");
                 spawn_evdev_keyboard(path, keydata_tx.clone());
             }
         }
@@ -152,6 +152,8 @@ fn spawn_evdev_keyboard(path: impl AsRef<Path>, keydata_tx: std::sync::mpsc::Sen
                                 pressed: ev.value() == 1,
                             })
                             .ok();
+                    } else {
+                        debug!("No mapping for key found. Last keypress is not forwarded to game.")
                     }
                 }
             }

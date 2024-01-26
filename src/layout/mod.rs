@@ -2,12 +2,10 @@
 
 use doomgeneric::input::KeyData;
 use libremarkable::cgmath::{Point2, Vector2};
-use libremarkable::framebuffer::common;
 use libremarkable::framebuffer::core::Framebuffer;
-use libremarkable::framebuffer::{
-    refresh::PartialRefreshMode, FramebufferDraw, FramebufferIO, FramebufferRefresh,
-};
-use libremarkable::input::{multitouch::Finger, multitouch::MultitouchEvent, InputEvent};
+use libremarkable::framebuffer::{common, PartialRefreshMode};
+use libremarkable::framebuffer::{FramebufferDraw, FramebufferIO, FramebufferRefresh};
+use libremarkable::input::{Finger, InputEvent, MultitouchEvent};
 
 mod confirmexit;
 mod controls;

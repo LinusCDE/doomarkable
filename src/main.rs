@@ -8,12 +8,9 @@ extern crate log;
 
 use doomgeneric::{game, game::DoomGeneric, input::KeyData};
 use libremarkable::cgmath::Point2;
-use libremarkable::framebuffer::common;
 use libremarkable::framebuffer::core::Framebuffer;
-use libremarkable::framebuffer::{
-    refresh::PartialRefreshMode, FramebufferBase, FramebufferDraw, FramebufferIO,
-    FramebufferRefresh,
-};
+use libremarkable::framebuffer::{common, PartialRefreshMode};
+use libremarkable::framebuffer::{FramebufferDraw, FramebufferIO, FramebufferRefresh};
 use libremarkable::image::{DynamicImage, RgbImage};
 use libremarkable::input::{ev::EvDevContext, InputDevice, InputEvent};
 use once_cell::sync::Lazy;
@@ -26,8 +23,7 @@ mod evdev_keyboard;
 mod layout;
 
 const SCALE_FACTOR: usize = 2;
-pub static FB: Lazy<Mutex<Framebuffer>> =
-    Lazy::new(|| Mutex::new(Framebuffer::from_path("/dev/fb0")));
+pub static FB: Lazy<Mutex<Framebuffer>> = Lazy::new(|| Mutex::new(Framebuffer::default()));
 
 struct Game {
     image: std::sync::Arc<std::sync::Mutex<RgbImage>>,
@@ -164,7 +160,7 @@ fn main() {
     let default_image =
         libremarkable::image::load_from_memory(include_bytes!("../res/default_screen.png"))
             .unwrap()
-            .to_rgb();
+            .to_rgb8();
     let image = std::sync::Arc::new(std::sync::Mutex::new(default_image));
     let image_clone = image.clone();
     std::thread::spawn(move || {

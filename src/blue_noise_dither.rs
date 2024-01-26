@@ -62,9 +62,9 @@ impl CachedDither4X {
                 let gray = (1f32.min((r + g + b) / 3.0) * 255f32) as u8;
                 Luma([gray])*/
 
-                let r = pixel.data[0] as u16;
-                let g = pixel.data[1] as u16;
-                let b = pixel.data[2] as u16;
+                let r = pixel.0[0] as u16;
+                let g = pixel.0[1] as u16;
+                let b = pixel.0[2] as u16;
                 Luma([((r + g + b) / 3) as u8])
             },
         );

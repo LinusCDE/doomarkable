@@ -8,6 +8,7 @@ use libremarkable::framebuffer::{FramebufferDraw, FramebufferIO, FramebufferRefr
 use libremarkable::input::{Finger, InputEvent, MultitouchEvent};
 
 mod confirmexit;
+mod confirmfullscreen;
 mod controls;
 mod keyboard;
 mod settings;
@@ -15,6 +16,7 @@ mod settings;
 pub enum InputOutcome {
     KeyData(KeyData),
     SwitchLayout(LayoutId),
+    EnterFullscreen,
 }
 
 pub struct LayoutManager {
@@ -57,6 +59,7 @@ impl LayoutManager {
         layouts.insert(LayoutId::Settings, settings::create());
         layouts.insert(LayoutId::ConfirmExit, confirmexit::create());
         layouts.insert(LayoutId::Keyboard, keyboard::create());
+        layouts.insert(LayoutId::ConfirmFullscreen, confirmfullscreen::create());
 
         let instance = Self {
             layouts,
@@ -108,6 +111,7 @@ pub enum LayoutId {
     Settings,
     ConfirmExit,
     Keyboard,
+    ConfirmFullscreen,
 }
 
 impl Default for LayoutId {
@@ -282,6 +286,9 @@ impl Layout {
                     ButtonAction::SwitchLayout(layout_id) => {
                         outcomes.push(InputOutcome::SwitchLayout(*layout_id));
                     }
+                    ButtonAction::EnterFullscreen => {
+                        outcomes.push(InputOutcome::EnterFullscreen);
+                    }
                 }
             }
         }
@@ -298,6 +305,7 @@ impl Layout {
 
                     ButtonAction::Function(_) => {}
                     ButtonAction::SwitchLayout(_) => {}
+                    ButtonAction::EnterFullscreen => {}
                 }
             }
         }
@@ -333,4 +341,5 @@ enum ButtonAction {
     DoomKey(u8),
     Function(Box<dyn Fn()>),
     SwitchLayout(LayoutId),
+    EnterFullscreen,
 }

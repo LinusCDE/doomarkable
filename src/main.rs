@@ -22,6 +22,7 @@ use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
 mod blue_noise_dither;
+mod evdev_keyboard;
 mod layout;
 
 const SCALE_FACTOR: usize = 2;
@@ -275,6 +276,7 @@ fn main() {
     });
 
     let (keydata_tx, keydata_rx) = std::sync::mpsc::channel::<KeyData>();
+    evdev_keyboard::init(keydata_tx.clone());
 
     std::thread::spawn(move || {
         let mut layout_manager = layout::LayoutManager::new(&mut FB.lock().unwrap());

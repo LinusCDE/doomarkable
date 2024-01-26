@@ -29,6 +29,8 @@ env_logger = "0.9"
 #core_simd = { git = "https://github.com/rust-lang/portable-simd.git", rev = "721164247cd609d04dc8f0bb2483bde83f2a7fd6" }
 # TODO: Bump to 0.9 once libremarkable has updated dependencies
 zstd = "0.5"
+inotify = "0.10"
+evdev = "0.12"
 
 [profile.release]
 # Improves performance significantly

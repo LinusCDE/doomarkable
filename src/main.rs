@@ -15,6 +15,7 @@ use libremarkable::image::{DynamicImage, RgbImage};
 use libremarkable::input::{ev::EvDevContext, InputDevice, InputEvent};
 use once_cell::sync::Lazy;
 use std::io::Cursor;
+use std::sync::atomic::AtomicBool;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
@@ -57,56 +58,11 @@ impl DoomGeneric for Game {
     }
 }
 
-fn main() {
-    if std::env::var("RUST_LOG").is_err() {
-        std::env::set_var("RUST_LOG", "INFO");
-    }
-    env_logger::init();
+fn clear() {
+    let _ = FB.lock().unwrap().clear();
+}
 
-    // Ensure .savegame and wad file are always relative to the home directory
-    std::env::set_current_dir("/home/root").unwrap();
-
-    let mut preparing_text_rect = FB.lock().unwrap().draw_text(
-        Point2 {
-            x: 600f32,
-            y: (1872 / 2) as f32,
-        },
-        "Preparing...",
-        50f32,
-        common::color::BLACK,
-        false,
-    );
-    preparing_text_rect.left -= 50;
-    preparing_text_rect.top -= 50;
-    preparing_text_rect.width += 50 * 2;
-    preparing_text_rect.height += 50 * 2;
-    FB.lock().unwrap().partial_refresh(
-        &preparing_text_rect,
-        PartialRefreshMode::Wait,
-        common::waveform_mode::WAVEFORM_MODE_GC16_FAST,
-        common::display_temp::TEMP_USE_AMBIENT,
-        common::dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
-        0,
-        true,
-    );
-    FB.lock().unwrap().clear();
-
-    // The dither_cache was calculated in build/main.rs and
-    // this env is set to the file path containing this cache.
-    let start = Instant::now();
-    let dither_cache_compressed = include_bytes!(env!("OUT_DIR_DITHERCACHE_FILE"));
-    let mut dither_cache_raw = Cursor::new(Vec::with_capacity(
-        blue_noise_dither::CachedDither4X::calc_dither_cache_len(
-            game::DOOMGENERIC_RESX as u32 / 2,
-            game::DOOMGENERIC_RESY as u32 / 2,
-        ) * 2,
-    ));
-    zstd::stream::copy_decode(Cursor::new(dither_cache_compressed), &mut dither_cache_raw).unwrap();
-    let dither_cache_raw = dither_cache_raw.into_inner();
-    let mut ditherer = blue_noise_dither::CachedDither4X::new(dither_cache_raw);
-    info!("Loaded dither cache in {:?}", start.elapsed());
-
-    // Title
+fn draw_title() {
     let title_text = concat!("DOOMarkable v", env!("CARGO_PKG_VERSION"));
     let subtitle_text = "https://github.com/LinusCDE/doomarkable";
     let title_size = 80;
@@ -146,9 +102,9 @@ fn main() {
         common::color::BLACK,
         false,
     );
+}
 
-    // Keys
-
+fn full_refresh() {
     FB.lock().unwrap().full_refresh(
         common::waveform_mode::WAVEFORM_MODE_GC16,
         common::display_temp::TEMP_USE_MAX,
@@ -156,6 +112,62 @@ fn main() {
         0,
         true,
     );
+}
+
+fn main() {
+    if std::env::var("RUST_LOG").is_err() {
+        std::env::set_var("RUST_LOG", "INFO");
+    }
+    env_logger::init();
+
+    // Ensure .savegame and wad file are always relative to the home directory
+    std::env::set_current_dir("/home/root").unwrap();
+
+    let mut preparing_text_rect = FB.lock().unwrap().draw_text(
+        Point2 {
+            x: 600f32,
+            y: (1872 / 2) as f32,
+        },
+        "Preparing...",
+        50f32,
+        common::color::BLACK,
+        false,
+    );
+    preparing_text_rect.left -= 50;
+    preparing_text_rect.top -= 50;
+    preparing_text_rect.width += 50 * 2;
+    preparing_text_rect.height += 50 * 2;
+    FB.lock().unwrap().partial_refresh(
+        &preparing_text_rect,
+        PartialRefreshMode::Wait,
+        common::waveform_mode::WAVEFORM_MODE_GC16_FAST,
+        common::display_temp::TEMP_USE_AMBIENT,
+        common::dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
+        0,
+        true,
+    );
+    clear();
+
+    // The dither_cache was calculated in build/main.rs and
+    // this env is set to the file path containing this cache.
+    let start = Instant::now();
+    let dither_cache_compressed = include_bytes!(env!("OUT_DIR_DITHERCACHE_FILE"));
+    let mut dither_cache_raw = Cursor::new(Vec::with_capacity(
+        blue_noise_dither::CachedDither4X::calc_dither_cache_len(
+            game::DOOMGENERIC_RESX as u32 / 2,
+            game::DOOMGENERIC_RESY as u32 / 2,
+        ) * 2,
+    ));
+    zstd::stream::copy_decode(Cursor::new(dither_cache_compressed), &mut dither_cache_raw).unwrap();
+    let dither_cache_raw = dither_cache_raw.into_inner();
+    let mut ditherer = blue_noise_dither::CachedDither4X::new(dither_cache_raw);
+    info!("Loaded dither cache in {:?}", start.elapsed());
+
+    // Title
+    draw_title();
+    full_refresh();
+
+    // Keys
 
     let default_image =
         libremarkable::image::load_from_memory(include_bytes!("../res/default_screen.png"))
@@ -163,10 +175,12 @@ fn main() {
             .to_rgb8();
     let image = std::sync::Arc::new(std::sync::Mutex::new(default_image));
     let image_clone = image.clone();
+    let fullscreen = std::sync::Arc::new(AtomicBool::new(false));
+    let fullscreen_clone = fullscreen.clone();
     std::thread::spawn(move || {
         let mut last_frame_drawn = Instant::now() - Duration::from_millis(1000);
         let width = game::DOOMGENERIC_RESX as u32 * SCALE_FACTOR as u32;
-        let height = game::DOOMGENERIC_RESY as u32 * SCALE_FACTOR as u32;
+        //let height = game::DOOMGENERIC_RESY as u32 * SCALE_FACTOR as u32;
         let pos = Point2 {
             x: (common::DISPLAYWIDTH as i32 - width as i32) / 2,
             //y: (common::DISPLAYHEIGHT as i32 - height as i32) / 2,
@@ -200,32 +214,38 @@ fn main() {
 
             // Battery indicator in corner
             if last_battery_indicator_update.elapsed() > battery_indicator_update_interval {
+                let is_fullscreen = fullscreen_clone.load(std::sync::atomic::Ordering::Relaxed);
                 last_battery_indicator_update = Instant::now();
-                let percentage = libremarkable::battery::percentage().unwrap_or(-1);
+                let percentage = if is_fullscreen {
+                    -1
+                } else {
+                    libremarkable::battery::percentage().unwrap_or(-1)
+                };
                 if percentage != last_battery_percentage {
                     last_battery_percentage = percentage;
-
-                    let text = format!("{}%    ", percentage); // Spaces to prevent residual text when text gets narrower
-                    let rect = FB.lock().unwrap().draw_text(
-                        Point2 {
-                            x: 10.0,
-                            y: (common::DISPLAYHEIGHT - 10) as f32,
-                        },
-                        &text,
-                        30f32,
-                        common::color::BLACK,
-                        false,
-                    );
-                    FB.lock().unwrap().partial_refresh(
-                        &rect,
-                        PartialRefreshMode::Async,
-                        common::waveform_mode::WAVEFORM_MODE_GC16_FAST,
-                        common::display_temp::TEMP_USE_MAX,
-                        common::dither_mode::EPDC_FLAG_USE_REMARKABLE_DITHER,
-                        0,
-                        false,
-                    );
-                    debug!("Updated battery indicator");
+                    if !is_fullscreen {
+                        let text = format!("{}%    ", percentage); // Spaces to prevent residual text when text gets narrower
+                        let rect = FB.lock().unwrap().draw_text(
+                            Point2 {
+                                x: 10.0,
+                                y: (common::DISPLAYHEIGHT - 10) as f32,
+                            },
+                            &text,
+                            30f32,
+                            common::color::BLACK,
+                            false,
+                        );
+                        FB.lock().unwrap().partial_refresh(
+                            &rect,
+                            PartialRefreshMode::Async,
+                            common::waveform_mode::WAVEFORM_MODE_GC16_FAST,
+                            common::display_temp::TEMP_USE_MAX,
+                            common::dither_mode::EPDC_FLAG_USE_REMARKABLE_DITHER,
+                            0,
+                            false,
+                        );
+                        debug!("Updated battery indicator");
+                    }
                 }
             }
 
@@ -242,20 +262,19 @@ fn main() {
             debug!("Dithering took {:?}", start.elapsed());
 
             let start = Instant::now();
-            //fb.draw_image(&dithered_img, pos);
-            draw_image_mono(&mut FB.lock().unwrap(), pos, &dithered_img);
+            let game_rect = if fullscreen_clone.load(std::sync::atomic::Ordering::Relaxed) {
+                draw_image_mono_fullscreen(&mut FB.lock().unwrap(), &dithered_img)
+            } else {
+                //fb.draw_image(&dithered_img, pos);
+                draw_image_mono(&mut FB.lock().unwrap(), pos, &dithered_img)
+            };
 
             let waveform = match libremarkable::device::CURRENT_DEVICE.model {
                 libremarkable::device::Model::Gen1 => common::waveform_mode::WAVEFORM_MODE_GLR16,
                 libremarkable::device::Model::Gen2 => common::waveform_mode::WAVEFORM_MODE_DU,
             };
             FB.lock().unwrap().partial_refresh(
-                &common::mxcfb_rect {
-                    left: pos.x as u32,
-                    top: pos.y as u32,
-                    width,
-                    height,
-                },
+                &game_rect,
                 PartialRefreshMode::Async,
                 //common::waveform_mode::WAVEFORM_MODE_DU,
                 //common::waveform_mode::WAVEFORM_MODE_GLR16,
@@ -279,8 +298,25 @@ fn main() {
 
         let (input_tx, input_rx) = std::sync::mpsc::channel::<InputEvent>();
         EvDevContext::new(InputDevice::Multitouch, input_tx).start();
+        let mut fullscreen_since: Option<Instant> = None;
 
         for event in input_rx {
+            if let Some(fullscreen_since_time) = fullscreen_since {
+                // Any touch 500ms after fullscreen entered => exit fullscreen
+                if fullscreen_since_time.elapsed() > Duration::from_millis(500) {
+                    // Exit out of fullscreen (portrait game, bring back layout)
+                    info!("Exiting fullscreen mode...");
+                    fullscreen.store(false, std::sync::atomic::Ordering::Relaxed);
+                    fullscreen_since = None;
+                    clear();
+                    draw_title();
+                    layout_manager
+                        .switch_layout(layout::LayoutId::Controls, &mut FB.lock().unwrap());
+                    full_refresh();
+                }
+                continue; // No layout handling while in fullscreen
+            }
+
             for outcome in layout_manager.current_layout_mut().handle_input(event) {
                 match outcome {
                     layout::InputOutcome::KeyData(keydata) => {
@@ -288,6 +324,14 @@ fn main() {
                     }
                     layout::InputOutcome::SwitchLayout(new_layout_id) => {
                         layout_manager.switch_layout(new_layout_id, &mut FB.lock().unwrap())
+                    }
+                    layout::InputOutcome::EnterFullscreen => {
+                        // Switch to fullscreen (landscape game, no layout rendering)
+                        info!("Entering fullscreen mode...");
+                        fullscreen_since = Some(Instant::now());
+                        fullscreen.store(true, std::sync::atomic::Ordering::Relaxed);
+                        clear();
+                        full_refresh();
                     }
                 }
             }
@@ -303,7 +347,11 @@ fn main() {
     warn!("Game loop quit!");
 }
 
-fn draw_image_mono(fb: &mut Framebuffer, pos: Point2<i32>, img: &libremarkable::image::GrayImage) {
+fn draw_image_mono(
+    fb: &mut Framebuffer,
+    pos: Point2<i32>,
+    img: &libremarkable::image::GrayImage,
+) -> common::mxcfb_rect {
     let width = img.width();
     let height = img.height();
     let mut fb_raw_data: Vec<u8> =
@@ -314,14 +362,44 @@ fn draw_image_mono(fb: &mut Framebuffer, pos: Point2<i32>, img: &libremarkable::
         fb_raw_data.push(pixel_value);
     }
 
-    fb.restore_region(
-        common::mxcfb_rect {
-            top: pos.y as u32,
-            left: pos.x as u32,
-            width,
-            height,
-        },
-        &fb_raw_data,
-    )
-    .unwrap();
+    let rect = common::mxcfb_rect {
+        top: pos.y as u32,
+        left: pos.x as u32,
+        width,
+        height,
+    };
+    fb.restore_region(rect, &fb_raw_data).unwrap();
+    rect
+}
+
+fn draw_image_mono_fullscreen(
+    fb: &mut Framebuffer,
+    img: &libremarkable::image::GrayImage,
+) -> common::mxcfb_rect {
+    let (portrait_width, portrait_height) = (img.width() as usize, img.height() as usize);
+    let (landscape_width, landscape_height) = (portrait_height, portrait_width);
+
+    let mut fb_raw_data: Vec<u8> = vec![0u8; portrait_width * 2 * portrait_height];
+    for (x, y, pixel_value) in img.enumerate_pixels() {
+        // Rotate by 90 degrees
+        let new_x = portrait_height - (y as usize + 1);
+        let new_y = x as usize;
+
+        // Put new x and y values into linear fb_raw_data
+        let index = (new_y * landscape_width + new_x) * 2;
+        fb_raw_data[index] = pixel_value.0[0];
+        fb_raw_data[index + 1] = pixel_value.0[0];
+    }
+    let pos = Point2 {
+        x: (common::DISPLAYWIDTH as i32 - landscape_width as i32) / 2,
+        y: (common::DISPLAYHEIGHT as i32 - landscape_height as i32) / 2,
+    };
+    let rect = common::mxcfb_rect {
+        top: pos.y as u32,
+        left: pos.x as u32,
+        width: landscape_width as u32,
+        height: landscape_height as u32,
+    };
+    fb.restore_region(rect, &fb_raw_data).unwrap();
+    rect
 }

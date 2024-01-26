@@ -51,6 +51,17 @@ pub fn create() -> Layout {
                 width: 400,
                 height: 100,
             },
+            label: "Fullscreen",
+            label_size: 50.0,
+            action: ButtonAction::SwitchLayout(LayoutId::ConfirmFullscreen),
+        },
+        Element::Button {
+            rect: common::mxcfb_rect {
+                left: 62,
+                top: 1400 - 300 - 10 + 100 + 10 + (100 + 10) * 2,
+                width: 400,
+                height: 100,
+            },
             label: "Exit",
             label_size: 50.0,
             action: ButtonAction::SwitchLayout(LayoutId::ConfirmExit),

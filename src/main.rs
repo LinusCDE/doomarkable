@@ -163,6 +163,13 @@ fn main() {
     let mut ditherer = blue_noise_dither::CachedDither4X::new(dither_cache_raw);
     info!("Loaded dither cache in {:?}", start.elapsed());
 
+    // Create grayscale to native pixel color map
+    let mut gray_to_native = [(0u8, 0u8); 256];
+    for gray_pixel_value in 0..256 {
+        let native_pixel = common::color::GRAY(255 - gray_pixel_value as u8).as_native();
+        gray_to_native[gray_pixel_value] = (native_pixel[0], native_pixel[1]);
+    }
+
     // Title
     draw_title();
     full_refresh();
@@ -263,10 +270,10 @@ fn main() {
 
             let start = Instant::now();
             let game_rect = if fullscreen_clone.load(std::sync::atomic::Ordering::Relaxed) {
-                draw_image_mono_fullscreen(&mut FB.lock().unwrap(), &dithered_img)
+                draw_image_mono_fullscreen(&mut FB.lock().unwrap(), &dithered_img, &gray_to_native)
             } else {
                 //fb.draw_image(&dithered_img, pos);
-                draw_image_mono(&mut FB.lock().unwrap(), pos, &dithered_img)
+                draw_image_mono(&mut FB.lock().unwrap(), pos, &dithered_img, &gray_to_native)
             };
 
             let waveform = match libremarkable::device::CURRENT_DEVICE.model {
@@ -351,6 +358,7 @@ fn draw_image_mono(
     fb: &mut Framebuffer,
     pos: Point2<i32>,
     img: &libremarkable::image::GrayImage,
+    gray_to_native: &[(u8, u8); 256],
 ) -> common::mxcfb_rect {
     let width = img.width();
     let height = img.height();
@@ -358,8 +366,8 @@ fn draw_image_mono(
         Vec::with_capacity(img.width() as usize * 2 * img.height() as usize);
     let img_vec = img.to_vec();
     for pixel_value in img_vec {
-        fb_raw_data.push(pixel_value);
-        fb_raw_data.push(pixel_value);
+        fb_raw_data.push(gray_to_native[pixel_value as usize].0);
+        fb_raw_data.push(gray_to_native[pixel_value as usize].1);
     }
 
     let rect = common::mxcfb_rect {
@@ -375,6 +383,7 @@ fn draw_image_mono(
 fn draw_image_mono_fullscreen(
     fb: &mut Framebuffer,
     img: &libremarkable::image::GrayImage,
+    gray_to_native: &[(u8, u8); 256],
 ) -> common::mxcfb_rect {
     let (portrait_width, portrait_height) = (img.width() as usize, img.height() as usize);
     let (landscape_width, landscape_height) = (portrait_height, portrait_width);
@@ -387,8 +396,8 @@ fn draw_image_mono_fullscreen(
 
         // Put new x and y values into linear fb_raw_data
         let index = (new_y * landscape_width + new_x) * 2;
-        fb_raw_data[index] = pixel_value.0[0];
-        fb_raw_data[index + 1] = pixel_value.0[0];
+        fb_raw_data[index] = gray_to_native[pixel_value.0[0] as usize].0;
+        fb_raw_data[index + 1] = gray_to_native[pixel_value.0[0] as usize].1;
     }
     let pos = Point2 {
         x: (common::DISPLAYWIDTH as i32 - landscape_width as i32) / 2,

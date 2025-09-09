@@ -20,7 +20,7 @@ opt-level = 2
 
 [dependencies]
 doomgeneric = { git = "https://github.com/LinusCDE/doomgeneric-rs.git", tag = "0.3.0-beta.2" }
-libremarkable = "0.6"
+libremarkable = { git = "https://github.com/canselcik/libremarkable.git", rev = "e9ae2461" }
 once_cell = "1"
 fxhash = "0.2"
 mimalloc = { version = "0.1.17", default-features = false }

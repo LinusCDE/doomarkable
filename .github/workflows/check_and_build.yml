@@ -1,0 +1,39 @@
+name: Check and build
+on: [ push, pull_request ]
+jobs:
+
+
+  check:
+    name: Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions-rs/cargo@v1
+        # TODO: Would be nice to get rid of all warnings at some
+        #       point and make this check fail if any are found.
+        name: Run cargo check
+        with:
+          use-cross: true
+          command: check
+          args: --target=armv7-unknown-linux-gnueabihf
+
+
+  build_snapshot:
+    name: Build snapshot
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions-rs/cargo@v1
+        name: Run cargo build --release
+        with:
+          use-cross: true
+          command: build
+          args: --release --target=armv7-unknown-linux-gnueabihf
+      - uses: actions/upload-artifact@v4
+        with:
+          name: snapshot
+          path: target/armv7-unknown-linux-gnueabihf/release/chessmarkable
+
+
+# TODO: Clippy, rustfmt and similar here as well
+# See https://actions-rs.github.io/

@@ -1,0 +1,31 @@
+# Checking all used dependencies for known security vulns.
+#
+# Only checking on master since new vulns can appear during a PR,
+# but it's not that PR's job to fix these vulns right there.
+# The issue should only be shown up after merging and a separate PR
+# can be created to address the issue(s) then.
+
+name: Audit dependencies
+on:
+  push:
+    branches: [ master ]
+  # Also run monthly
+  schedule:
+   - cron: '0 0 1 * *'
+jobs:
+
+
+  audit:
+    name: Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: armv7-unknown-linux-gnueabihf
+          profile: minimal
+      - name: Security Audit
+        uses: actions-rs/audit-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}

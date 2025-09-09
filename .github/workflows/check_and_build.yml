@@ -32,7 +32,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: snapshot
-          path: target/armv7-unknown-linux-gnueabihf/release/chessmarkable
+          path: target/armv7-unknown-linux-gnueabihf/release/doomarkable
 
 
 # TODO: Clippy, rustfmt and similar here as well

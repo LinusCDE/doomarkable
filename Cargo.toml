@@ -11,7 +11,7 @@ build = "build/main.rs"
 
 [build-dependencies]
 image = "0.25"
-zstd = "0.9"
+zstd = "0.13"
 
 [profile.release.build-override]
 # Makes dithered cache calculation about 25x faster!
@@ -19,12 +19,12 @@ opt-level = 2
 
 [dependencies]
 doomgeneric = { git = "https://github.com/LinusCDE/doomgeneric-rs.git", tag = "0.3.0-beta.2" }
-libremarkable = { git = "https://github.com/canselcik/libremarkable.git", rev = "e9ae2461" }
+libremarkable = { git = "https://github.com/canselcik/libremarkable.git", rev = "2e6157648984bfa31639648bd759ee2c31701024" } # Essentially 0.7.0
 fxhash = "0.2"
 mimalloc = { version = "0.1", default-features = false }
 log = "0.4"
 env_logger = "0.11"
-zstd = "0.9" # Matched with libremarkable, since only one version of zstd-sys can be built
+zstd = "0.13" # Matched with libremarkable, since only one version of zstd-sys can be built
 inotify = "0.11"
 evdev = "0.13"
 

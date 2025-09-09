@@ -1,7 +1,7 @@
 use std::{path::Path, sync::mpsc::Sender};
 
 use doomgeneric::input::KeyData;
-use evdev::Key;
+use evdev::KeyCode;
 
 const DEV_INPUT_DIR: &str = "/dev/input";
 
@@ -82,7 +82,7 @@ fn spawn_keyboard_watcher(keydata_tx: Sender<KeyData>) {
 }
 
 // Check if device is a keyboard, spawn new thread and listen for keystrokes and send them to keydata_tx
-fn spawn_evdev_keyboard(path: impl AsRef<Path>, keydata_tx: std::sync::mpsc::Sender<KeyData>) {
+fn spawn_evdev_keyboard(path: impl AsRef<Path>, keydata_tx: Sender<KeyData>) {
     // Check if this device is a valid keyboard
     let mut device = match evdev::Device::open(&path) {
         Ok(device) => device,
@@ -93,12 +93,12 @@ fn spawn_evdev_keyboard(path: impl AsRef<Path>, keydata_tx: std::sync::mpsc::Sen
     };
     if !device.supported_events().contains(evdev::EventType::KEY)
         || [
-            evdev::Key::KEY_Q,
-            evdev::Key::KEY_W,
-            evdev::Key::KEY_E,
-            evdev::Key::KEY_R,
-            evdev::Key::KEY_T,
-            evdev::Key::KEY_Y,
+            KeyCode::KEY_Q,
+            KeyCode::KEY_W,
+            KeyCode::KEY_E,
+            KeyCode::KEY_R,
+            KeyCode::KEY_T,
+            KeyCode::KEY_Y,
         ]
         .iter()
         .any(|key| {
@@ -129,27 +129,22 @@ fn spawn_evdev_keyboard(path: impl AsRef<Path>, keydata_tx: std::sync::mpsc::Sen
             }.collect();
 
             for ev in evs {
-                if let evdev::InputEventKind::Key(key) = ev.kind() {
-                    if ev.value() != 0 && ev.value() != 1 {
+                if let evdev::EventSummary::Key(_event, key, value) = ev.destructure() {
+                    if value != 0 && value != 1 {
                         continue; // Ignore key being held (value == 2) and other potential values.
                     }
 
                     if let Ok((keycode, scancodes)) = device.get_scancode_by_index(key.0) {
-                        debug!(
-                            "{} ({:?}, keycode: {keycode}, scancodes: {scancodes:?}) => {}",
-                            key.0,
-                            key,
-                            ev.value()
-                        );
+                        debug!("{} ({key:?}, keycode: {keycode}, scancodes: {scancodes:?}) => {value}", key.0);
                     } else {
-                        debug!("{} ({:?}) => {}", key.0, key, ev.value());
+                        debug!("{} ({key:?}) => {value}", key.0);
                     }
 
-                    if let Some(doom_key_code) = map_evdev_key_to_doom(key) {
+                    if let Some(doom_key_code) = map_evdev_keycode_to_doom(key) {
                         keydata_tx
                             .send(KeyData {
                                 key: doom_key_code,
-                                pressed: ev.value() == 1,
+                                pressed: value == 1,
                             })
                             .ok();
                     } else {
@@ -161,111 +156,111 @@ fn spawn_evdev_keyboard(path: impl AsRef<Path>, keydata_tx: std::sync::mpsc::Sen
     });
 }
 
-fn map_evdev_key_to_doom(key: Key) -> Option<u8> {
+fn map_evdev_keycode_to_doom(key: KeyCode) -> Option<u8> {
     // https://github.com/ozkl/doomgeneric/blob/613f870b6fa83ede448a247de5a2571092fa729d/doomgeneric/doomkeys.h
     Some(match key {
-        Key::KEY_A => 'a' as u8,
-        Key::KEY_B => 'b' as u8,
-        Key::KEY_C => 'c' as u8,
-        Key::KEY_D => 'd' as u8,
-        Key::KEY_E => 'e' as u8,
-        Key::KEY_F => 'f' as u8,
-        Key::KEY_G => 'g' as u8,
-        Key::KEY_H => 'h' as u8,
-        Key::KEY_I => 'i' as u8,
-        Key::KEY_J => 'j' as u8,
-        Key::KEY_K => 'k' as u8,
-        Key::KEY_L => 'l' as u8,
-        Key::KEY_M => 'm' as u8,
-        Key::KEY_N => 'n' as u8,
-        Key::KEY_O => 'o' as u8,
-        Key::KEY_P => 'p' as u8,
-        Key::KEY_Q => 'q' as u8,
-        Key::KEY_R => 'r' as u8,
-        Key::KEY_S => 's' as u8,
-        Key::KEY_T => 't' as u8,
-        Key::KEY_U => 'u' as u8,
-        Key::KEY_V => 'v' as u8,
-        Key::KEY_W => 'w' as u8,
-        Key::KEY_X => 'x' as u8,
-        Key::KEY_Y => 'y' as u8,
-        Key::KEY_Z => 'z' as u8,
-        Key::KEY_0 => '0' as u8,
-        Key::KEY_1 => '1' as u8,
-        Key::KEY_2 => '2' as u8,
-        Key::KEY_3 => '3' as u8,
-        Key::KEY_4 => '4' as u8,
-        Key::KEY_5 => '5' as u8,
-        Key::KEY_6 => '6' as u8,
-        Key::KEY_7 => '7' as u8,
-        Key::KEY_8 => '8' as u8,
-        Key::KEY_9 => '9' as u8,
+        KeyCode::KEY_A => 'a' as u8,
+        KeyCode::KEY_B => 'b' as u8,
+        KeyCode::KEY_C => 'c' as u8,
+        KeyCode::KEY_D => 'd' as u8,
+        KeyCode::KEY_E => 'e' as u8,
+        KeyCode::KEY_F => 'f' as u8,
+        KeyCode::KEY_G => 'g' as u8,
+        KeyCode::KEY_H => 'h' as u8,
+        KeyCode::KEY_I => 'i' as u8,
+        KeyCode::KEY_J => 'j' as u8,
+        KeyCode::KEY_K => 'k' as u8,
+        KeyCode::KEY_L => 'l' as u8,
+        KeyCode::KEY_M => 'm' as u8,
+        KeyCode::KEY_N => 'n' as u8,
+        KeyCode::KEY_O => 'o' as u8,
+        KeyCode::KEY_P => 'p' as u8,
+        KeyCode::KEY_Q => 'q' as u8,
+        KeyCode::KEY_R => 'r' as u8,
+        KeyCode::KEY_S => 's' as u8,
+        KeyCode::KEY_T => 't' as u8,
+        KeyCode::KEY_U => 'u' as u8,
+        KeyCode::KEY_V => 'v' as u8,
+        KeyCode::KEY_W => 'w' as u8,
+        KeyCode::KEY_X => 'x' as u8,
+        KeyCode::KEY_Y => 'y' as u8,
+        KeyCode::KEY_Z => 'z' as u8,
+        KeyCode::KEY_0 => '0' as u8,
+        KeyCode::KEY_1 => '1' as u8,
+        KeyCode::KEY_2 => '2' as u8,
+        KeyCode::KEY_3 => '3' as u8,
+        KeyCode::KEY_4 => '4' as u8,
+        KeyCode::KEY_5 => '5' as u8,
+        KeyCode::KEY_6 => '6' as u8,
+        KeyCode::KEY_7 => '7' as u8,
+        KeyCode::KEY_8 => '8' as u8,
+        KeyCode::KEY_9 => '9' as u8,
 
-        Key::KEY_RIGHT => 0xae,
-        Key::KEY_LEFT => 0xac,
-        Key::KEY_UP => 0xad,
-        Key::KEY_DOWN => 0xaf,
-        Key::KEY_DOT => 0xa0,      // Strafe left
-        Key::KEY_COMMA => 0xa1,    // Strafe right
-        Key::KEY_SPACE => 0xa2,    // Use
-        Key::KEY_LEFTCTRL => 0xa3, // Fire... i think
-        Key::KEY_ESC => 27,
-        Key::KEY_ENTER => 13,
-        Key::KEY_TAB => 9,
-        Key::KEY_F1 => 0x80 + 0x3b,
-        Key::KEY_F2 => 0x80 + 0x3c,
-        Key::KEY_F3 => 0x80 + 0x3d,
-        Key::KEY_F4 => 0x80 + 0x3e,
-        Key::KEY_F5 => 0x80 + 0x3f,
-        Key::KEY_F6 => 0x80 + 0x40,
-        Key::KEY_F7 => 0x80 + 0x41,
-        Key::KEY_F8 => 0x80 + 0x42,
-        Key::KEY_F9 => 0x80 + 0x43,
-        Key::KEY_F10 => 0x80 + 0x44,
-        Key::KEY_F11 => 0x80 + 0x57,
-        Key::KEY_F12 => 0x80 + 0x58,
+        KeyCode::KEY_RIGHT => 0xae,
+        KeyCode::KEY_LEFT => 0xac,
+        KeyCode::KEY_UP => 0xad,
+        KeyCode::KEY_DOWN => 0xaf,
+        KeyCode::KEY_DOT => 0xa0,      // Strafe left
+        KeyCode::KEY_COMMA => 0xa1,    // Strafe right
+        KeyCode::KEY_SPACE => 0xa2,    // Use
+        KeyCode::KEY_LEFTCTRL => 0xa3, // Fire... i think
+        KeyCode::KEY_ESC => 27,
+        KeyCode::KEY_ENTER => 13,
+        KeyCode::KEY_TAB => 9,
+        KeyCode::KEY_F1 => 0x80 + 0x3b,
+        KeyCode::KEY_F2 => 0x80 + 0x3c,
+        KeyCode::KEY_F3 => 0x80 + 0x3d,
+        KeyCode::KEY_F4 => 0x80 + 0x3e,
+        KeyCode::KEY_F5 => 0x80 + 0x3f,
+        KeyCode::KEY_F6 => 0x80 + 0x40,
+        KeyCode::KEY_F7 => 0x80 + 0x41,
+        KeyCode::KEY_F8 => 0x80 + 0x42,
+        KeyCode::KEY_F9 => 0x80 + 0x43,
+        KeyCode::KEY_F10 => 0x80 + 0x44,
+        KeyCode::KEY_F11 => 0x80 + 0x57,
+        KeyCode::KEY_F12 => 0x80 + 0x58,
 
-        Key::KEY_BACKSPACE => 0x7f,
-        Key::KEY_PAUSE => 0xff,
+        KeyCode::KEY_BACKSPACE => 0x7f,
+        KeyCode::KEY_PAUSE => 0xff,
 
-        Key::KEY_EQUAL => 0x3d,
-        Key::KEY_MINUS => 0x2d,
+        KeyCode::KEY_EQUAL => 0x3d,
+        KeyCode::KEY_MINUS => 0x2d,
 
-        Key::KEY_LEFTSHIFT => 0x80 + 0x36, // Does this have a different key for doom?
-        Key::KEY_RIGHTSHIFT => 0x80 + 0x36,
-        Key::KEY_RIGHTCTRL => 0x80 + 0x1d,
-        Key::KEY_LEFTALT => 0x80 + 0x38u8,
-        Key::KEY_RIGHTALT => 0x80 + 0x38,
+        KeyCode::KEY_LEFTSHIFT => 0x80 + 0x36, // Does this have a different key for doom?
+        KeyCode::KEY_RIGHTSHIFT => 0x80 + 0x36,
+        KeyCode::KEY_RIGHTCTRL => 0x80 + 0x1d,
+        KeyCode::KEY_LEFTALT => 0x80 + 0x38u8,
+        KeyCode::KEY_RIGHTALT => 0x80 + 0x38,
 
-        Key::KEY_CAPSLOCK => 0x80 + 0x3a,
-        Key::KEY_NUMLOCK => 0x80 + 0x45,
-        Key::KEY_SCROLLLOCK => 0x80 + 0x46,
-        Key::KEY_PRINT => 0x80 + 0x59, // Is Print == PRINTSCR?
+        KeyCode::KEY_CAPSLOCK => 0x80 + 0x3a,
+        KeyCode::KEY_NUMLOCK => 0x80 + 0x45,
+        KeyCode::KEY_SCROLLLOCK => 0x80 + 0x46,
+        KeyCode::KEY_PRINT => 0x80 + 0x59, // Is Print == PRINTSCR?
 
-        Key::KEY_HOME => 0x80 + 0x47,
-        Key::KEY_END => 0x80 + 0x4f,
-        Key::KEY_PAGEUP => 0x80 + 0x49,
-        Key::KEY_PAGEDOWN => 0x80 + 0x51,
-        Key::KEY_INSERT => 0x80 + 0x52,
-        Key::KEY_DELETE => 0x80 + 0x53,
+        KeyCode::KEY_HOME => 0x80 + 0x47,
+        KeyCode::KEY_END => 0x80 + 0x4f,
+        KeyCode::KEY_PAGEUP => 0x80 + 0x49,
+        KeyCode::KEY_PAGEDOWN => 0x80 + 0x51,
+        KeyCode::KEY_INSERT => 0x80 + 0x52,
+        KeyCode::KEY_DELETE => 0x80 + 0x53,
 
-        Key::KEY_KP0 => 0,
-        Key::KEY_KP1 => return map_evdev_key_to_doom(Key::KEY_END),
-        Key::KEY_KP2 => return map_evdev_key_to_doom(Key::KEY_DOWN),
-        Key::KEY_KP3 => return map_evdev_key_to_doom(Key::KEY_PAGEDOWN),
-        Key::KEY_KP4 => return map_evdev_key_to_doom(Key::KEY_LEFT),
-        Key::KEY_KP5 => '5' as u8,
-        Key::KEY_KP6 => return map_evdev_key_to_doom(Key::KEY_RIGHT),
-        Key::KEY_KP7 => return map_evdev_key_to_doom(Key::KEY_HOME),
-        Key::KEY_KP8 => return map_evdev_key_to_doom(Key::KEY_UP),
-        Key::KEY_KP9 => return map_evdev_key_to_doom(Key::KEY_PAGEUP),
+        KeyCode::KEY_KP0 => 0,
+        KeyCode::KEY_KP1 => return map_evdev_keycode_to_doom(KeyCode::KEY_END),
+        KeyCode::KEY_KP2 => return map_evdev_keycode_to_doom(KeyCode::KEY_DOWN),
+        KeyCode::KEY_KP3 => return map_evdev_keycode_to_doom(KeyCode::KEY_PAGEDOWN),
+        KeyCode::KEY_KP4 => return map_evdev_keycode_to_doom(KeyCode::KEY_LEFT),
+        KeyCode::KEY_KP5 => '5' as u8,
+        KeyCode::KEY_KP6 => return map_evdev_keycode_to_doom(KeyCode::KEY_RIGHT),
+        KeyCode::KEY_KP7 => return map_evdev_keycode_to_doom(KeyCode::KEY_HOME),
+        KeyCode::KEY_KP8 => return map_evdev_keycode_to_doom(KeyCode::KEY_UP),
+        KeyCode::KEY_KP9 => return map_evdev_keycode_to_doom(KeyCode::KEY_PAGEUP),
 
-        Key::KEY_KPSLASH => '/' as u8,
-        Key::KEY_KPPLUS => '+' as u8,
-        Key::KEY_KPMINUS => '-' as u8,
-        Key::KEY_KPASTERISK => '*' as u8,
-        Key::KEY_KPDOT => 0,
-        Key::KEY_KPENTER => return map_evdev_key_to_doom(Key::KEY_ENTER),
+        KeyCode::KEY_KPSLASH => '/' as u8,
+        KeyCode::KEY_KPPLUS => '+' as u8,
+        KeyCode::KEY_KPMINUS => '-' as u8,
+        KeyCode::KEY_KPASTERISK => '*' as u8,
+        KeyCode::KEY_KPDOT => 0,
+        KeyCode::KEY_KPENTER => return map_evdev_keycode_to_doom(KeyCode::KEY_ENTER),
 
         _ => return None,
     })

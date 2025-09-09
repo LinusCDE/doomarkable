@@ -4,19 +4,18 @@
 //! The base code as and noise.png are licensed under MIT:
 //! https://github.com/mblode/blue-noise/blob/568d18f5/LICENSE.md
 
+use std::sync::LazyLock;
 use image::{ImageBuffer, Luma};
-use once_cell::sync::Lazy;
 
-static NOISE_IMG: Lazy<ImageBuffer<Luma<u8>, Vec<u8>>> = Lazy::new(|| {
+static NOISE_IMG: LazyLock<ImageBuffer<Luma<u8>, Vec<u8>>> = LazyLock::new(|| {
     image::load_from_memory(include_bytes!("noise.png"))
         .expect("Load noise.png")
         .grayscale()
-        .as_luma8()
-        .unwrap()
+        .to_luma8()
         .to_owned()
 });
-static NOISE_WIDTH: Lazy<u32> = Lazy::new(|| NOISE_IMG.width());
-static NOISE_HEIGHT: Lazy<u32> = Lazy::new(|| NOISE_IMG.height());
+static NOISE_WIDTH: LazyLock<u32> = LazyLock::new(|| NOISE_IMG.width());
+static NOISE_HEIGHT: LazyLock<u32> = LazyLock::new(|| NOISE_IMG.height());
 
 #[inline]
 fn is_bright(noise_color: &Luma<u8>, picture_color: &Luma<u8>) -> bool {

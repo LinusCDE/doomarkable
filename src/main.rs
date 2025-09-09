@@ -13,10 +13,9 @@ use libremarkable::framebuffer::{common, PartialRefreshMode};
 use libremarkable::framebuffer::{FramebufferDraw, FramebufferIO, FramebufferRefresh};
 use libremarkable::image::{DynamicImage, RgbImage};
 use libremarkable::input::{ev::EvDevContext, InputDevice, InputEvent};
-use once_cell::sync::Lazy;
 use std::io::Cursor;
 use std::sync::atomic::AtomicBool;
-use std::sync::Mutex;
+use std::sync::{LazyLock, Mutex};
 use std::time::{Duration, Instant};
 
 mod blue_noise_dither;
@@ -24,7 +23,7 @@ mod evdev_keyboard;
 mod layout;
 
 const SCALE_FACTOR: usize = 2;
-pub static FB: Lazy<Mutex<Framebuffer>> = Lazy::new(|| Mutex::new(Framebuffer::default()));
+pub static FB: LazyLock<Mutex<Framebuffer>> = LazyLock::new(|| Mutex::new(Framebuffer::default()));
 
 struct Game {
     image: std::sync::Arc<std::sync::Mutex<RgbImage>>,

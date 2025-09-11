@@ -18,8 +18,8 @@ zstd = "0.13"
 opt-level = 2
 
 [dependencies]
-doomgeneric = { git = "https://github.com/LinusCDE/doomgeneric-rs.git", tag = "0.3.0-beta.2" }
-libremarkable = { git = "https://github.com/canselcik/libremarkable.git", rev = "2e6157648984bfa31639648bd759ee2c31701024" } # Essentially 0.7.0
+doomgeneric = "=0.3.0-beta.2"
+libremarkable = "0.7.0"
 fxhash = "0.2"
 mimalloc = { version = "0.1", default-features = false }
 log = "0.4"

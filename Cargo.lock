@@ -363,7 +363,8 @@ dependencies = [
 [[package]]
 name = "doomgeneric"
 version = "0.3.0-beta.2"
-source = "git+https://github.com/LinusCDE/doomgeneric-rs.git?tag=0.3.0-beta.2#976253acf56f48384f389ed172c87664ea8def32"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "73a6636337c682e7820026e36492f75141a2f6aa6d5f8fe49bd7385d46ee2329"
 dependencies = [
  "cc",
  "once_cell",
@@ -609,8 +610,9 @@ checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
 
 [[package]]
 name = "hlua"
-version = "0.4.2"
-source = "git+https://github.com/fenollp/hlua.git?rev=f327e79#f327e7909abe5b972a1e9704a371e3315e18ccbe"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c3c03a4912d51870b3ad70456a312f0527debce842f6230096938564bcf13bea"
 dependencies = [
  "libc",
  "lua52-sys",
@@ -806,7 +808,8 @@ dependencies = [
 [[package]]
 name = "libremarkable"
 version = "0.7.0"
-source = "git+https://github.com/canselcik/libremarkable.git?rev=2e6157648984bfa31639648bd759ee2c31701024#2e6157648984bfa31639648bd759ee2c31701024"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1da7c4a5765735faf196b9c3eb027cd9c2afb58abc772c8ef299dc56dc93edef"
 dependencies = [
  "aabb-quadtree",
  "cgmath",
@@ -820,7 +823,6 @@ dependencies = [
  "line_drawing",
  "log",
  "memmap2",
- "once_cell",
  "rusttype",
  "zstd",
 ]
@@ -852,7 +854,8 @@ dependencies = [
 [[package]]
 name = "lua52-sys"
 version = "0.1.3"
-source = "git+https://github.com/fenollp/hlua.git?rev=f327e79#f327e7909abe5b972a1e9704a371e3315e18ccbe"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d2905d3eea022e5a4d8723d95ba261cd366572c9a43e429dfc089088a8c0fe91"
 dependencies = [
  "cc",
  "libc",

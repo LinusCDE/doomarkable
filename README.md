@@ -50,6 +50,10 @@ The game currently runs fine but there are still some things to do:
 - Run the binary: `./doomarkable` (on the rM 2, you'll need [rm2fb](https://github.com/ddvk/remarkable2-framebuffer) and prefix that command with `rm2fb-client`)
 - DOOM should now run on your device. If the game doesn't come up, view the output for any errors or enable debugging by adding `RUST_LOG=debug` before the command
 
+### Environment variable for the reMarkable 2
+
+The environment variable `LIBREMARKABLE_FB_DISFAVOR_INTERNAL_RM2FB` can be set to `1` to make this application not try to use its internal framebuffer client for [RM2FB](https://github.com/ddvk/remarkable2-framebuffer/).
+
 ### Compiling
 
 In general building should work on most toolchains. You generally wanna target armv7-unknown-linux-gnueabihf for any remarkable.
@@ -59,4 +63,3 @@ That's why I recommend to nowadays build with the rust image from [toltec-dev/to
 
 To make it easier to use, I found that you can use the rust image (`ghcr.io/toltec-dev/rust:v3.2`, [all versions](https://github.com/toltec-dev/toolchain/pkgs/container/rust)).
 This is done using the `Cross.toml` file. So you should just need to run `cross build --target=armv7-unknown-linux-gnueabihf --release` and it will use the above image (or possibly newer if this readme gets out-of-date).
-
